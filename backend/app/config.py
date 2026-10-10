@@ -18,11 +18,10 @@ from pathlib import Path
 
 
 def _load_dotenv_once() -> None:
-    """Loads backend/../.env into os.environ (without overwriting real env vars)
-    on first import, so `uvicorn app.main:app` works the same as the scripts that
-    already did their own ad-hoc .env loading (hello_agent.py, run_demo.py).
+    """Loads backend/.env into os.environ (without overwriting real env vars)
+    on first import, independently of the process's working directory.
     """
-    env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+    env_path = Path(__file__).resolve().parent.parent / ".env"
     if not env_path.exists():
         return
     for line in env_path.read_text().splitlines():
