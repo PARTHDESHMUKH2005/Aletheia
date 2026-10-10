@@ -50,7 +50,7 @@ export const api = {
       body: JSON.stringify({ count }),
     }),
 
-  putUpload: (url, blob) => fetch(`${API_URL}${url}`, { method: "PUT", body: blob }),
+  putUpload: (url, blob) => request(url, { method: "PUT", body: blob }),
 
   createStream: (body) =>
     request("/streams", {

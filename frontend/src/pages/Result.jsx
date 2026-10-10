@@ -30,7 +30,54 @@ export default function Result() {
   const [route, setRoute] = useState(null);
   const [routeError, setRouteError] = useState(null);
   const [draft, setDraft] = useState(null);
+  const [wipeBusy, setWipeBusy] = useState(false);
+  const [wipeError, setWipeError] = useState(null);
+  const [draftBusy, setDraftBusy] = useState(false);
+  const [draftError, setDraftError] = useState(null);
+  const wipePendingRef = useRef(false);
+  const draftPendingRef = useRef(false);
   const pollRef = useRef(null);
+
+  async function handleWipe() {
+    if (wipePendingRef.current) return;
+    wipePendingRef.current = true;
+    setWipeBusy(true);
+    setWipeError(null);
+    try {
+      await api.confirmWipe(streamId);
+      try {
+        setStream(await api.getStream(streamId));
+      } catch (err) {
+        setWipeError(`Wipe recorded, but ledger refresh failed: ${err.message}`);
+      }
+    } catch (err) {
+      setWipeError(err.message);
+    } finally {
+      wipePendingRef.current = false;
+      setWipeBusy(false);
+    }
+  }
+
+  async function handleDraft(processorId) {
+    if (draftPendingRef.current) return;
+    draftPendingRef.current = true;
+    setDraftBusy(true);
+    setDraftError(null);
+    setDraft(null);
+    try {
+      setDraft(await api.draftPickupMessage(streamId, processorId));
+      try {
+        setStream(await api.getStream(streamId));
+      } catch (err) {
+        setDraftError(`Draft created, but ledger refresh failed: ${err.message}`);
+      }
+    } catch (err) {
+      setDraftError(err.message);
+    } finally {
+      draftPendingRef.current = false;
+      setDraftBusy(false);
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -137,14 +184,17 @@ export default function Result() {
                 <span className="text-green-700">wipe confirmed</span>
               ) : (
                 <button
-                  className="underline text-blue-700"
-                  onClick={() => api.confirmWipe(streamId).then(() => api.getStream(streamId).then(setStream))}
+                  className="underline text-blue-700 disabled:opacity-40"
+                  disabled={wipeBusy}
+                  aria-busy={wipeBusy}
+                  onClick={handleWipe}
                 >
-                  record wipe certificate
+                  {wipeBusy ? "Recording wipe..." : "record wipe certificate"}
                 </button>
               )}
             </div>
           )}
+          {wipeError && <div role="alert" className="mt-2 text-sm text-red-600">{wipeError}</div>}
         </div>
       )}
 
@@ -222,17 +272,19 @@ export default function Result() {
                     {c.why_not_picked && <div className="text-xs text-gray-600 mt-1">{c.why_not_picked}</div>}
                     {c.processor_id === route.routing.picked_processor_id && (
                       <button
-                        className="mt-2 text-xs underline text-blue-700"
-                        onClick={() =>
-                          api.draftPickupMessage(streamId, c.processor_id).then(setDraft)
-                        }
+                        className="mt-2 text-xs underline text-blue-700 disabled:opacity-40"
+                        disabled={draftBusy}
+                        aria-busy={draftBusy}
+                        onClick={() => handleDraft(c.processor_id)}
                       >
-                        Request pickup (draft only, never sent)
+                        {draftBusy ? "Creating draft..." : "Request pickup (draft only, never sent)"}
                       </button>
                     )}
                   </div>
                 ))}
               </div>
+
+              {draftError && <div role="alert" className="text-sm text-red-600">{draftError}</div>}
 
               {draft && (
                 <div className="border rounded-md p-3 bg-gray-50 text-sm">

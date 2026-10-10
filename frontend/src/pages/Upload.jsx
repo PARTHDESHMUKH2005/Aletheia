@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, resizeImageToJpeg } from "../api.js";
 import { ORGS } from "../orgs.js";
@@ -12,13 +12,16 @@ export default function Upload() {
   const [pincode, setPincode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const submittingRef = useRef(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (submittingRef.current) return;
     if (!file) {
       setError("Pick a photo first.");
       return;
     }
+    submittingRef.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -37,6 +40,7 @@ export default function Upload() {
     } catch (err) {
       setError(err.message);
     } finally {
+      submittingRef.current = false;
       setBusy(false);
     }
   }
