@@ -69,6 +69,7 @@ def run_eval() -> dict:
     low_confidence_and_right = 0
     high_confidence_and_wrong = 0
     missing_photos: list[str] = []
+    errors_count = 0
     results: list[dict] = []
 
     for row in rows:
@@ -81,7 +82,14 @@ def run_eval() -> dict:
         photo = {"format": _guess_format(photo_path), "bytes": photo_path.read_bytes()}
 
         start = time.monotonic()
-        characterization = characterize_waste([photo], storage=storage)
+        try:
+            characterization = characterize_waste([photo], storage=storage)
+        except Exception as exc:  # one bad photo should not end the run; it counts as wrong
+            print(f"{row['image_path']:<40} ERROR {type(exc).__name__}")
+            results.append({"image_path": row["image_path"], "true_label": row["material"], "predicted": None,
+                            "confidence": 0.0, "correct": False, "ms": 0, "error": type(exc).__name__})
+            errors_count += 1
+            continue
         elapsed_ms = int((time.monotonic() - start) * 1000)
         durations_ms.append(elapsed_ms)
 
@@ -115,8 +123,22 @@ def run_eval() -> dict:
     errors = high_confidence_and_wrong + low_confidence_and_wrong
     review_gate_recall = (low_confidence_and_wrong / errors) if errors else None
 
+    # Calibration: how often each confidence band was actually right. This is what
+    # supports (or undercuts) showing the confidence number to users.
+    bands = {"low (<0.70)": (0, 0.7), "medium (0.70-0.85)": (0.7, 0.85), "high (>=0.85)": (0.85, 1.01)}
+    calibration = {}
+    for name, (lo, hi) in bands.items():
+        in_band = [r for r in results if "error" not in r and lo <= r["confidence"] < hi]
+        calibration[name] = {
+            "n": len(in_band),
+            "accuracy": round(sum(r["correct"] for r in in_band) / len(in_band), 3) if in_band else None,
+            "mean_confidence": round(sum(r["confidence"] for r in in_band) / len(in_band), 3) if in_band else None,
+        }
+
     summary = {
+        "calibration_by_confidence_band": calibration,
         "rows_evaluated": n,
+        "rows_errored": errors_count,
         "rows_missing_photo": len(missing_photos),
         "missing_photos": missing_photos,
         "accuracy": round(accuracy, 3),

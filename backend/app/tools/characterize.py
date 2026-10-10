@@ -8,6 +8,8 @@ import time
 from typing import TypedDict
 
 from app.config import get_model, get_settings
+from strands.types.exceptions import MaxTokensReachedException
+
 from app.models import Characterization
 
 logger = logging.getLogger("loopback.characterize")
@@ -30,7 +32,7 @@ def compute_image_hash(photos: list[PhotoBlock]) -> str:
 
 
 def _build_prompt(photos: list[PhotoBlock], note: str, quantity_kg: float | None) -> list[dict]:
-    text = "Characterize every distinct waste item visible across these photos. Return every field in the schema for each item. "
+    text = "Characterize every distinct waste item visible across these photos. Return every field in the schema for each item. List any visible contaminants in 'contaminants' (for example 'steel pieces mixed in', 'oil stains', 'plastic labels'); use an empty list if none are visible. Do not invent contaminants, and do not give a purity percentage. "
     if note:
         text += f"Submitter note: {note}. "
     if quantity_kg is not None:
@@ -91,9 +93,13 @@ def characterize_waste(
         return Characterization.model_validate(cached)
 
     prompt = _build_prompt(photos, note, quantity_kg)
-    characterization = _run_model("fast", prompt)
-
-    if characterization.overall_confidence < CONFIDENCE_ESCALATION_THRESHOLD:
+    try:
+        characterization = _run_model("fast", prompt)
+        if characterization.overall_confidence < CONFIDENCE_ESCALATION_THRESHOLD:
+            characterization = _run_model("strong", prompt)
+    except MaxTokensReachedException:
+        # The cheap tier ran out of output budget; the stronger tier has more. Still one retry, never a loop.
+        logger.info(json.dumps({"step": "characterize", "max_tokens_retry": True}))
         characterization = _run_model("strong", prompt)
 
     storage.set_cached_characterization(image_hash, characterization.model_dump())

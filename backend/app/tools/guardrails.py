@@ -75,6 +75,13 @@ def fire_risk_warning(item) -> str | None:
     return None
 
 
+def _needs_registered_handler(processor: dict, material: str) -> bool:
+    """E-waste handed to a refurbisher, dismantler or recycler needs a registered handler
+    (RULES.md section 2). Plain reuse/donation does not, so reuse-tier processors are exempt.
+    """
+    return material.startswith("e_waste") and processor.get("tier") != "reuse"
+
+
 def processor_authorized_for(processor: dict, material: str, hazardous: bool) -> bool:
     """A processor may take a hazardous/regulated item only if it accepts the material
     AND carries both authorization_ref and authorization_checked_on. Missing the check
@@ -83,7 +90,7 @@ def processor_authorized_for(processor: dict, material: str, hazardous: bool) ->
     """
     if material not in processor.get("accepted_materials", []):
         return False
-    if not hazardous:
+    if not hazardous and not _needs_registered_handler(processor, material):
         return True
     return bool(processor.get("authorization_ref")) and bool(processor.get("authorization_checked_on"))
 

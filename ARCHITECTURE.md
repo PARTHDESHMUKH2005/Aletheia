@@ -143,6 +143,8 @@ At w=0.5 the foundry wins (cheaper). Around w=0.6 it flips and the Ludhiana mill
 | `app/pipeline.py` | `run_pipeline()`: the step-by-step job in section 2. |
 | `app/models.py` | The data shapes: `Item` (what the AI returns), request/response shapes, the candidate and receipt shapes. |
 | `app/config.py` | Reads settings (which AI provider, local vs AWS storage, dev tools on/off). Creates the AI model and storage objects. |
+| `app/tools/assessment.py` | Confidence band, contamination list, review reasons, recommended action. No purity percentage (none is validated). |
+| `app/tools/ewaste.py` | E-waste batch: device registry, reuse/refurbish/recycle pathway, per-drive wipe records, transfer gate. |
 | `app/agent.py` | **Empty placeholder.** The planned "orchestrator agent" is not built. |
 | `app/lambda_api.py`, `app/lambda_pipeline.py` | **Empty placeholders** for running on AWS Lambda later. |
 | `app/tools/characterize.py` | Photo -> structured description via Gemini, with caching. |
@@ -188,7 +190,12 @@ At w=0.5 the foundry wins (cheaper). Around w=0.6 it flips and the Ludhiana mill
 | `POST /streams/{id}/draft-message?processor_id=...` | Writes a draft pickup message and logs it. **Never sends anything.** |
 | `POST /streams/{id}/wipe` | Marks a data wipe as done (simulated certificate). |
 | `GET /streams/{id}/report` | Receipt data as JSON (PDF export not built). |
-| `GET /orgs/{org_id}/dashboard` | Totals for an org: kg per route type, CO2 avoided. |
+| `GET /streams/{id}/route?w=..&evidence_weight=..` | Also returns `assessment` (confidence band, contamination, recommended action). Each losing buyer carries `why_not_picked`. |
+| `GET /review-queue`, `POST /streams/{id}/review` | Items waiting on a person; a named reviewer confirms, reclassifies or rejects (written to the ledger). |
+| `POST /streams/{id}/handoff` | Move a pickup to matched / collected / weighed / verified. Blocked while any e-waste drive has no wipe record. |
+| `POST/GET /streams/{id}/ewaste`, `POST /streams/{id}/ewaste/drives/{drive_id}/wipe` | Register a retired-equipment batch; each drive is tracked and needs a wipe or destruction record (method, certificate ref, operator). |
+| `GET /scoring-config` | The exact numbers the score uses (`data/scoring_config.json`). |
+| `GET /orgs/{org_id}/dashboard` | kg submitted/collected/verified, projected vs realised revenue (gross, transport, net), CO2e with factors and methodology, pending counts, outstanding actions, missing documents. |
 | `GET /processors` | The demo buyers, with their authorization label. |
 | `GET /verify/{id}` | Checks the ledger chain. |
 | `POST /dev/tamper/{id}` | Demo only: corrupts a ledger row. |

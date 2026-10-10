@@ -37,11 +37,14 @@ from app.tools.rules import lookup_rules
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 _PROCESSORS: list[dict] = json.loads((_DATA_DIR / "processors.json").read_text())
 
-TRANSPORT_COST_INR_PER_TONNE_KM = 3.0   # assumption, not sourced
-TRANSPORT_CO2E_KG_PER_TONNE_KM = 0.062  # assumption, not sourced
+# All scoring knobs live in data/scoring_config.json so they are visible and editable.
+SCORING_CONFIG: dict = json.loads((_DATA_DIR / "scoring_config.json").read_text())
 
-DEFAULT_MAX_DISTANCE_KM = 500.0   # ranking cap; override with MAX_DISTANCE_KM env var or the max_distance_km argument
-EQUAL_SPREAD_THRESHOLD = 0.02     # spreads under 2% on a measure count as equal
+TRANSPORT_COST_INR_PER_TONNE_KM = SCORING_CONFIG["transport_cost_inr_per_tonne_km"]   # assumption, not sourced
+TRANSPORT_CO2E_KG_PER_TONNE_KM = SCORING_CONFIG["transport_co2e_kg_per_tonne_km"]     # assumption, not sourced
+
+DEFAULT_MAX_DISTANCE_KM = SCORING_CONFIG["default_max_distance_km"]   # ranking cap; override with MAX_DISTANCE_KM env var or the max_distance_km argument
+EQUAL_SPREAD_THRESHOLD = SCORING_CONFIG["equal_spread_threshold"]     # spreads under this fraction on a measure count as equal
 TIE_BREAK_RULE = "nearer distance first, then name (alphabetical)"
 
 _HIERARCHY_ORDER = {"reuse": 0, "refurbish": 1, "recycle": 2, "recovery": 3, "disposal": 4}
@@ -105,8 +108,37 @@ def _looks_reusable(item: Item) -> bool:
     return item.purity == "high" and any(hint in text for hint in _WORKING_HINTS)
 
 
+def evidence_level(processor: dict) -> int:
+    """0 = no authorization reference, 1 = reference on file but never checked,
+    2 = reference plus a check date. A record of what is on file, not a verdict.
+    """
+    if not processor.get("authorization_ref"):
+        return 0
+    return 2 if processor.get("authorization_checked_on") else 1
+
+
+def _why_not_picked(c: dict, pick: dict) -> str:
+    """Plain-language reason a ranked option lost to the pick, from its own numbers."""
+    parts = []
+    d_money = c["net_rupees"] - pick["net_rupees"]
+    d_carbon = c["net_co2e_kg"] - pick["net_co2e_kg"]
+    if abs(d_money) >= 0.005:
+        parts.append(f"INR {abs(d_money):.2f} {'more' if d_money > 0 else 'less'} net")
+    if abs(d_carbon) >= 0.005:
+        parts.append(f"{abs(d_carbon):.2f} kg CO2e {'more' if d_carbon > 0 else 'less'} avoided")
+    d_km = c["distance_km"] - pick["distance_km"]
+    if abs(d_km) >= 0.05:
+        parts.append(f"{abs(d_km):.1f} km {'farther' if d_km > 0 else 'closer'}")
+    if c["evidence_level"] != pick["evidence_level"]:
+        parts.append("stronger authorization evidence on file" if c["evidence_level"] > pick["evidence_level"] else "weaker authorization evidence on file")
+    if not parts:
+        return "Same as the pick on every measure; placed lower by the tie-break rule."
+    return "Compared with the pick: " + ", ".join(parts) + f". Score {c['score']:.3f} vs {pick['score']:.3f}."
+
+
 def find_processors(
     item: Item, org_location: dict, w: float = 0.5, top_n: int = 3, max_distance_km: float | None = None,
+    evidence_weight: float = 0.0,
 ) -> dict:
     """Returns ranked, scored candidates plus any eligible-but-unscored ones, the
     pick, a one-line trade-off explanation, and the rule that governs this material.
@@ -114,6 +146,8 @@ def find_processors(
     """
     if not 0.0 <= w <= 1.0:
         raise ValueError("w must be between 0 and 1")
+    if not 0.0 <= evidence_weight <= 1.0:
+        raise ValueError("evidence_weight must be between 0 and 1")
     cap = default_max_distance_km() if max_distance_km is None else float(max_distance_km)
 
     rule = lookup_rules(item.material, item.hazardous)
@@ -124,10 +158,15 @@ def find_processors(
     avoided_factor = factor["avoided_kg_co2e_per_kg"] if factor else None
 
     eligible = [p for p in _PROCESSORS if item.material in p["accepted_materials"]]
+    if item.material.startswith("e_waste") and not _looks_reusable(item):
+        # Reuse/donation is only offered for equipment that looks usable (waste hierarchy).
+        eligible_for_ranking = [p for p in eligible if p["tier"] != "reuse"]
+    else:
+        eligible_for_ranking = eligible
 
     scoreable: list[dict] = []   # eligible with price, factor and authorization gate: define the reference scale
     unscored: list[dict] = []
-    for p in eligible:
+    for p in eligible_for_ranking:
         gate_passed = processor_authorized_for(p, item.material, item.hazardous)
         distance_km = haversine_km(org_location, p["location"])
         transport_cost_pk = TRANSPORT_COST_INR_PER_TONNE_KM * distance_km / 1000.0
@@ -151,6 +190,10 @@ def find_processors(
             "net_co2e_per_kg": net_co2e_pk,
             "net_rupees": net_rupees_pk * quantity_kg if net_rupees_pk is not None else None,
             "net_co2e_kg": net_co2e_pk * quantity_kg if net_co2e_pk is not None else None,
+            "gross_rupees": price * quantity_kg if price is not None else None,
+            "transport_cost_rupees": transport_cost_pk * quantity_kg,
+            "transport_co2e_kg": transport_co2e_pk * quantity_kg,
+            "evidence_level": evidence_level(p),
             "authorization_gate_passed": gate_passed,
             "authorization_label": authorization_label(p),
             "review_required": review_required,
@@ -195,10 +238,15 @@ def find_processors(
         for c in in_range:
             c["money_score_used"] = top_money if money_equal else c["money_score"]
             c["carbon_score_used"] = top_carbon if carbon_equal else c["carbon_score"]
-            c["score"] = (1 - w) * c["money_score_used"] + w * c["carbon_score_used"]
+            blended = (1 - w) * c["money_score_used"] + w * c["carbon_score_used"]
+            c["evidence_score"] = c["evidence_level"] / 2
+            c["score"] = (1 - evidence_weight) * blended + evidence_weight * c["evidence_score"]
         in_range.sort(key=lambda c: (-round(c["score"], 9), c["_distance_exact"], c["name"]))
         tied_at_top = len(in_range) > 1 and round(in_range[0]["score"], 9) == round(in_range[1]["score"], 9)
         ranked = in_range[:top_n]
+        for c in ranked[1:]:
+            c["why_not_picked"] = _why_not_picked(c, ranked[0])
+        ranked[0]["why_not_picked"] = None
 
     for c in ranked + unscored:
         c.pop("_distance_exact", None)
@@ -244,6 +292,7 @@ def find_processors(
 
     return {
         "slider_w": w,
+        "evidence_weight": evidence_weight,
         "max_distance_km": cap,
         "candidates": ranked,
         "unscored_candidates": unscored,

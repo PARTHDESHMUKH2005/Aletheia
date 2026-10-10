@@ -124,3 +124,198 @@ def dashboard_summary(routed_items: list[tuple[Item, dict]]) -> dict:
         "compliance_status": compliance_status,
         "disclaimer": "Routing aid only. Confirm rules and processor authorization with the official CPCB or State Board source.",
     }
+
+
+# --- organization impact dashboard ---
+
+_HANDOFF_ORDER = ["requested", "matched", "collected", "weighed", "verified"]
+_PAPERWORK_EVENTS = {  # paperwork LoopBack can check from the ledger
+    "data wipe certificate": "data_wipe_confirmed",
+    "transfer record": "handoff_collected",
+    "weighment slip": "handoff_weighed",
+    "ledger record": None,  # exists as soon as the stream has any ledger entry
+}
+_METHODOLOGY = {
+    "co2e": "Net CO2e = (avoided kg CO2e per kg for the material x the buyer's recovery rate - transport CO2e) x kg. "
+            "Factors are US EPA WARM values used as a proxy, not India-specific; see factors_used for each.",
+    "revenue": "Gross = buyer price per kg x kg. Transport = INR per tonne-km x straight-line km x kg. Net = gross - transport. "
+               "Prices marked illustrative are placeholders, not quotes.",
+    "projected_vs_realised": "Projected counts every routed item at its stated weight. Realised counts only items whose "
+                             "handoff reached 'verified', at the weight recorded then if one was entered.",
+}
+
+
+def _handoff_state(events: list[dict]) -> tuple[str | None, float | None]:
+    """Furthest handoff status reached and the weight recorded with it, from ledger entries."""
+    import json as _json
+    best, weight = -1, None
+    for e in events:
+        if not e["event"].startswith("handoff_"):
+            continue
+        status = e["event"][len("handoff_"):]
+        if status in _HANDOFF_ORDER:
+            idx = _HANDOFF_ORDER.index(status)
+            if idx >= best:
+                best = idx
+                payload = _json.loads(e["payload_json"])
+                if payload.get("weight_kg") is not None:
+                    weight = float(payload["weight_kg"])
+    return (_HANDOFF_ORDER[best] if best >= 0 else None), weight
+
+
+def _gross_and_transport(picked: dict, kg: float) -> tuple[float, float]:
+    """Gross and transport rupees for a picked buyer. Streams saved before these fields
+    existed are rebuilt from the stored price and net, so net always equals gross - transport."""
+    gross = picked.get("gross_rupees")
+    if gross is None:
+        price = picked.get("price_per_kg_inr")
+        gross = price * kg if price is not None else (picked.get("net_rupees") or 0.0)
+    transport = picked.get("transport_cost_rupees")
+    if transport is None:
+        transport = gross - (picked.get("net_rupees") or 0.0)
+    return gross, transport
+
+
+def org_impact(streams: list[dict], ledgers: dict[str, list[dict]]) -> dict:
+    """Operational dashboard for one organization.
+
+    streams: stored stream dicts (with stream_id); ledgers: stream_id -> ledger entries.
+    Items still waiting on a human (NEEDS_REVIEW) are listed as pending and kept out of
+    the projected and realised totals.
+    """
+    from app.tools.rules import lookup_rules
+
+    submitted_kg = collected_kg = verified_kg = 0.0
+    kg_by_tier = {tier: 0.0 for tier in _TIERS}
+    proj = {"gross_inr": 0.0, "transport_cost_inr": 0.0, "net_inr": 0.0, "co2e_kg": 0.0}
+    real = {"gross_inr": 0.0, "transport_cost_inr": 0.0, "net_inr": 0.0, "co2e_kg": 0.0}
+    factors_used: dict[str, dict] = {}
+    no_factor_materials: set[str] = set()
+    awaiting_review = awaiting_pickup = awaiting_verification = 0
+    actions: list[dict] = []
+    missing_docs: list[dict] = []
+    untracked: set[str] = set()
+    counted = 0
+
+    for stream in sorted(streams, key=lambda s: s["stream_id"]):
+        sid, status = stream["stream_id"], stream.get("status")
+        characterization = stream.get("characterization")
+        if status == "FAILED" or not characterization:
+            continue
+        events = ledgers.get(sid, [])
+        event_names = {e["event"] for e in events}
+        handoff, handoff_weight = _handoff_state(events)
+        routings = stream.get("routing") or []
+        reviewed = bool(stream.get("review"))
+
+        if status == "NEEDS_REVIEW" and not reviewed:
+            awaiting_review += 1
+            actions.append({"stream_id": sid, "action": "Human review needed", "detail": "Open the review queue."})
+        if status == "REJECTED":
+            continue
+
+        batch = stream.get("ewaste")
+        if batch:
+            for reason in blocking_reasons_ewaste(batch):
+                actions.append({"stream_id": sid, "action": "Record data wipe", "detail": reason})
+
+        for idx, (item_data, routing) in enumerate(zip(characterization["items"], routings)):
+            item = Item.model_validate(item_data)
+            kg = item.quantity_kg or 0.0
+            submitted_kg += kg
+            if not item.quantity_kg:
+                actions.append({"stream_id": sid, "action": "Enter a weight", "detail": f"{item.material} has no usable weight, so totals count it as 0 kg."})
+            if not routing or routing.get("refused"):
+                actions.append({"stream_id": sid, "action": "Out of scope", "detail": f"{item.material} was refused and needs a different route."})
+                continue
+            if status == "NEEDS_REVIEW" and not reviewed:
+                continue
+
+            rule = lookup_rules(item.material, item.hazardous)
+            for paper in rule["paperwork"]:
+                if paper not in _PAPERWORK_EVENTS:
+                    untracked.add(paper)
+                    continue
+                needed_event = _PAPERWORK_EVENTS[paper]
+                if needed_event is None:
+                    present = bool(events)
+                    due = True
+                elif needed_event in ("handoff_collected", "handoff_weighed"):
+                    present = needed_event in event_names
+                    # only chase it once the handoff has moved past that step
+                    due = handoff in (("weighed", "verified") if needed_event == "handoff_collected" else ("verified",))
+                else:
+                    present = needed_event in event_names or bool(batch)
+                    due = item.is_storage_device or item.material == "e_waste_storage_drive"
+                if due and not present:
+                    missing_docs.append({"stream_id": sid, "document": paper, "material": item.material})
+            counted += 1
+
+            picked = next((c for c in routing["candidates"] if c["processor_id"] == routing.get("picked_processor_id")), None)
+            reuse_id = routing.get("reuse_recommended_processor_id")
+            if picked is None and not reuse_id:
+                actions.append({"stream_id": sid, "action": "No route", "detail": f"No buyer cleared the checks for {item.material}."})
+                continue
+            if picked is None:
+                kg_by_tier["reuse"] += kg
+            else:
+                kg_by_tier[picked["tier"]] = kg_by_tier.get(picked["tier"], 0.0) + kg
+                gross, transport = _gross_and_transport(picked, kg)
+                co2 = picked.get("net_co2e_kg")
+                proj["gross_inr"] += gross
+                proj["transport_cost_inr"] += transport
+                proj["net_inr"] += picked["net_rupees"] or 0.0
+                if co2 is not None:
+                    proj["co2e_kg"] += co2
+                factor = get_avoided_factor(item.material)
+                if factor:
+                    factors_used[item.material] = {"kg_co2e_per_kg": factor["avoided_kg_co2e_per_kg"], "source": factor["source"], "label": factor["label"], "verified": factor["verified"]}
+                else:
+                    no_factor_materials.add(item.material)
+
+            if handoff is None:
+                actions.append({"stream_id": sid, "action": "Request pickup", "detail": f"{item.material} is routed but no pickup was requested."})
+            elif handoff in ("requested", "matched"):
+                awaiting_pickup += 1
+            elif handoff in ("collected", "weighed"):
+                awaiting_verification += 1
+                collected_kg += handoff_weight if handoff_weight is not None else kg
+            elif handoff == "verified":
+                actual = handoff_weight if handoff_weight is not None else kg
+                collected_kg += actual
+                verified_kg += actual
+                if picked is not None and kg > 0:
+                    scale = actual / kg
+                    gross_v, transport_v = _gross_and_transport(picked, kg)
+                    real["gross_inr"] += gross_v * scale
+                    real["transport_cost_inr"] += transport_v * scale
+                    real["net_inr"] += (picked["net_rupees"] or 0.0) * scale
+                    real["co2e_kg"] += (picked["net_co2e_kg"] or 0.0) * scale
+
+    def _round(d):
+        return {k: round(v, 2) for k, v in d.items()}
+
+    return {
+        "items_counted": counted,
+        "kg": {"submitted": round(submitted_kg, 2), "collected": round(collected_kg, 2), "verified": round(verified_kg, 2)},
+        "kg_by_tier": {k: round(v, 2) for k, v in kg_by_tier.items()},
+        "revenue_inr": {"projected": _round(proj), "realised": _round(real)},
+        "co2e": {
+            "projected_kg": round(proj["co2e_kg"], 2),
+            "realised_kg": round(real["co2e_kg"], 2),
+            "factors_used": factors_used,
+            "materials_without_factor": sorted(no_factor_materials),
+            "methodology": _METHODOLOGY["co2e"],
+        },
+        "pending": {"awaiting_review": awaiting_review, "awaiting_pickup": awaiting_pickup, "awaiting_verification": awaiting_verification},
+        "outstanding_actions": actions,
+        "missing_documents": missing_docs,
+        "paperwork_not_tracked_by_loopback": sorted(untracked),
+        "methodology": _METHODOLOGY,
+        "disclaimer": "Routing aid only. Buyers, most prices and recovery rates are demo data. Confirm rules and processor authorization with the official CPCB or State Board source.",
+    }
+
+
+def blocking_reasons_ewaste(batch: dict) -> list[str]:
+    from app.tools.ewaste import blocking_reasons
+    return blocking_reasons(batch)

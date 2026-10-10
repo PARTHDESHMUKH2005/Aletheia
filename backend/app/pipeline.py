@@ -7,6 +7,7 @@ import logging
 import time
 
 from app.models import Characterization
+from app.tools.assessment import assess_item
 from app.tools.characterize import PhotoBlock, characterize_waste
 from app.tools.geo import LocationError, resolve_pincode
 from app.tools.guardrails import out_of_scope_flag
@@ -74,6 +75,7 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
         t1 = time.monotonic()
         routings = []
         receipts = []
+        assessments = []
         needs_review = False
         refused = False
 
@@ -83,6 +85,7 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
                 refused = True
                 routings.append({"refused": True, "out_of_scope_category": scope_flag})
                 receipts.append(None)
+                assessments.append(assess_item(item))
                 continue
 
             threshold = HAZARDOUS_CONFIDENCE_THRESHOLD if item.hazardous else LOW_CONFIDENCE_THRESHOLD
@@ -96,6 +99,7 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
             receipt = counterfactual_receipt(item, routing_result)
             routings.append(routing_result)
             receipts.append(receipt.model_dump())
+            assessments.append(assess_item(item))
 
             picked_id = routing_result.get("picked_processor_id") or routing_result.get("reuse_recommended_processor_id")
             if picked_id is not None:
@@ -116,6 +120,7 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
             characterization=characterization.model_dump(),
             routing=routings,
             receipts=receipts,
+            assessments=assessments,
             timings=timings,
         )
         logger.info(json.dumps({"step": "pipeline", "stream_id": stream_id, "status": status, **timings}))
