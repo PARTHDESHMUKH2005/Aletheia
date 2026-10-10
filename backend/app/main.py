@@ -23,10 +23,15 @@ from app.models import (
     WipeConfirmResponse,
 )
 from app.pipeline import run_pipeline
-from app.tools import ledger, report
+from datetime import datetime, timezone
+
+from pydantic import BaseModel
+
+from app.tools import ewaste, ledger, report
+from app.tools.assessment import assess_item
 from app.tools.geo import LocationError, resolve_pincode
 from app.tools.guardrails import authorization_label
-from app.tools.matching import find_processors
+from app.tools.matching import SCORING_CONFIG, find_processors
 
 _DATA_DIR = Path(__file__).resolve().parent / "data"
 _PROCESSORS: list[dict] = json.loads((_DATA_DIR / "processors.json").read_text())
@@ -120,7 +125,7 @@ def get_stream(stream_id: str) -> dict:
 
 
 @app.get("/streams/{stream_id}/route")
-def get_route(stream_id: str, w: float = 0.5, item_index: int = 0) -> dict:
+def get_route(stream_id: str, w: float = 0.5, item_index: int = 0, evidence_weight: float = 0.0) -> dict:
     """The slider endpoint: re-ranks processors for item_index at the given w and
     returns the ranked list, the pick, the trade-off explanation, and the receipt.
     """
@@ -128,6 +133,8 @@ def get_route(stream_id: str, w: float = 0.5, item_index: int = 0) -> dict:
     stream = _get_stream_or_404(storage, stream_id)
     if not 0.0 <= w <= 1.0:
         raise HTTPException(status_code=422, detail="w must be between 0 and 1")
+    if not 0.0 <= evidence_weight <= 1.0:
+        raise HTTPException(status_code=422, detail="evidence_weight must be between 0 and 1")
 
     characterization = stream.get("characterization")
     if not characterization:
@@ -138,11 +145,11 @@ def get_route(stream_id: str, w: float = 0.5, item_index: int = 0) -> dict:
 
     item = Item.model_validate(items[item_index])
     try:
-        routing_result = find_processors(item, resolve_pincode(stream.get("pincode")), w=w)
+        routing_result = find_processors(item, resolve_pincode(stream.get("pincode")), w=w, evidence_weight=evidence_weight)
     except LocationError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
     receipt = report.counterfactual_receipt(item, routing_result)
-    return {"routing": routing_result, "receipt": receipt.model_dump()}
+    return {"routing": routing_result, "receipt": receipt.model_dump(), "assessment": assess_item(item)}
 
 
 @app.post("/streams/{stream_id}/wipe")
@@ -216,18 +223,184 @@ def org_dashboard(org_id: str) -> dict:
         raise HTTPException(status_code=404, detail=f"no such org: {org_id}")
     storage = _storage()
     streams = storage.list_streams_by_org(org_id)
+    ledgers = {s["stream_id"]: storage.get_ledger_chain(s["stream_id"]) for s in streams}
+    return report.org_impact(streams, ledgers)
 
-    routed_pairs = []
-    for stream in streams:
-        characterization = stream.get("characterization")
-        routings = stream.get("routing") or []
-        if not characterization:
-            continue
-        for item_data, routing_result in zip(characterization["items"], routings):
-            if routing_result and not routing_result.get("refused"):
-                routed_pairs.append((Item.model_validate(item_data), routing_result))
 
-    return report.dashboard_summary(routed_pairs)
+@app.get("/scoring-config")
+def scoring_config() -> dict:
+    """The exact numbers the routing score uses, so a decision can be checked by hand."""
+    return SCORING_CONFIG
+
+
+class ReviewRequest(BaseModel):
+    decision: str            # "confirm_routing" | "reclassify" | "reject"
+    reviewer: str
+    note: str = ""
+    material: str | None = None   # required for "reclassify"
+
+
+@app.get("/review-queue")
+def review_queue(org_id: str | None = None) -> list[dict]:
+    """Streams waiting on a person: NEEDS_REVIEW with no review decision yet."""
+    storage = _storage()
+    rows = []
+    for oid in ([org_id] if org_id else list(_ORGS)):
+        for stream in storage.list_streams_by_org(oid):
+            if stream.get("status") != "NEEDS_REVIEW" or stream.get("review"):
+                continue
+            rows.append({
+                "stream_id": stream["stream_id"], "org_id": oid,
+                "assessments": stream.get("assessments") or [],
+                "materials": [i["material"] for i in (stream.get("characterization") or {}).get("items", [])],
+            })
+    return rows
+
+
+@app.post("/streams/{stream_id}/review")
+def submit_review(stream_id: str, body: ReviewRequest) -> dict:
+    """A person's decision on a NEEDS_REVIEW stream, written to the ledger."""
+    storage = _storage()
+    stream = _get_stream_or_404(storage, stream_id)
+    if stream.get("status") != "NEEDS_REVIEW":
+        raise HTTPException(status_code=409, detail="stream is not waiting for review")
+    if not body.reviewer.strip():
+        raise HTTPException(status_code=422, detail="reviewer is required")
+    if body.decision not in ("confirm_routing", "reclassify", "reject"):
+        raise HTTPException(status_code=422, detail="decision must be confirm_routing, reclassify or reject")
+
+    items = stream["characterization"]["items"]
+    routings = list(stream.get("routing") or [])
+    receipts = list(stream.get("receipts") or [])
+    assessments = list(stream.get("assessments") or [])
+    new_status = "ROUTED"
+    payload = {"reviewer": body.reviewer.strip(), "decision": body.decision, "note": body.note}
+
+    if body.decision == "reject":
+        new_status = "REJECTED"
+    elif any(r and r.get("refused") for r in routings):
+        raise HTTPException(status_code=409, detail="an item is out of scope; it can only be rejected")
+    elif body.decision == "reclassify":
+        valid = set(Item.model_fields["material"].annotation.__args__)
+        if body.material not in valid:
+            raise HTTPException(status_code=422, detail=f"material must be one of {sorted(valid)}")
+        for i, data in enumerate(items):
+            items[i] = {**data, "material": body.material, "confidence": 1.0}
+        payload["material"] = body.material
+        try:
+            location = resolve_pincode(stream.get("pincode"))
+        except LocationError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+        for i, data in enumerate(items):
+            item = Item.model_validate(data)
+            routing = find_processors(item, location, w=stream.get("slider_w", 0.5))
+            routings[i] = routing
+            receipts[i] = report.counterfactual_receipt(item, routing).model_dump()
+            assessments[i] = assess_item(item)
+    else:
+        for i, r in enumerate(routings):
+            if r and Item.model_validate(items[i]).hazardous and not r.get("picked_processor_id"):
+                raise HTTPException(status_code=409, detail="a hazardous item has no authorization-checked buyer; it cannot be confirmed")
+
+    ledger.append(storage, stream_id, event="human_review", payload=payload)
+    review = {**payload, "at": datetime.now(timezone.utc).isoformat()}
+    storage.update_stream(
+        stream_id, status=new_status, review=review,
+        characterization={**stream["characterization"], "items": items},
+        routing=routings, receipts=receipts, assessments=assessments,
+    )
+    return {"stream_id": stream_id, "status": new_status, "review": review}
+
+
+class HandoffRequest(BaseModel):
+    status: str
+    weight_kg: float | None = None
+    processor_id: str | None = None
+    item_index: int = 0
+
+
+@app.post("/streams/{stream_id}/handoff")
+def advance_handoff(stream_id: str, body: HandoffRequest) -> dict:
+    """Moves a handoff forward (matched, collected, weighed, verified). Blocked while any
+    storage drive in an e-waste batch lacks a wipe or destruction record.
+    """
+    storage = _storage()
+    stream = _get_stream_or_404(storage, stream_id)
+    if body.status not in ("matched", "collected", "weighed", "verified"):
+        raise HTTPException(status_code=422, detail="status must be matched, collected, weighed or verified")
+    if stream.get("status") != "ROUTED":
+        raise HTTPException(status_code=409, detail="only a ROUTED stream can move through handoff")
+    items = stream["characterization"]["items"]
+    if not 0 <= body.item_index < len(items):
+        raise HTTPException(status_code=404, detail="no such item_index")
+    if body.weight_kg is not None and body.weight_kg <= 0:
+        raise HTTPException(status_code=422, detail="weight_kg must be positive")
+
+    reasons = ewaste.blocking_reasons(stream.get("ewaste"))
+    if reasons:
+        raise HTTPException(status_code=409, detail={"blocked": True, "reasons": reasons})
+
+    routing = (stream.get("routing") or [None])[body.item_index] or {}
+    processor_id = body.processor_id or routing.get("picked_processor_id") or routing.get("reuse_recommended_processor_id")
+    if processor_id is None:
+        raise HTTPException(status_code=409, detail="no buyer was picked for this item")
+    try:
+        entry = ledger.record_handoff(
+            storage, stream_id, processor_id, body.status, Item.model_validate(items[body.item_index]),
+            payload={"weight_kg": body.weight_kg} if body.weight_kg is not None else None,
+        )
+    except PermissionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    return {"stream_id": stream_id, "status": body.status, "link_no": entry["link_no"]}
+
+
+class EwasteRegisterRequest(BaseModel):
+    devices: list[dict]
+
+
+class DriveWipeRequest(BaseModel):
+    method: str
+    certificate_ref: str
+    operator: str
+
+
+@app.post("/streams/{stream_id}/ewaste")
+def register_ewaste(stream_id: str, body: EwasteRegisterRequest) -> dict:
+    """Records the devices in a retired-equipment batch. Each installed drive becomes its
+    own tracked record. Returns the pathway per device (reuse, refurbish or recycle)."""
+    storage = _storage()
+    stream = _get_stream_or_404(storage, stream_id)
+    try:
+        batch = ewaste.register_devices(stream.get("ewaste"), body.devices)
+    except (ValueError, TypeError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    storage.update_stream(stream_id, ewaste=batch)
+    ledger.append(storage, stream_id, event="ewaste_devices_registered", payload={
+        "asset_tags": [d["asset_tag"] for d in batch["devices"][-len(body.devices):]],
+    })
+    return ewaste.summarize(batch)
+
+
+@app.get("/streams/{stream_id}/ewaste")
+def get_ewaste(stream_id: str) -> dict:
+    return ewaste.summarize(_get_stream_or_404(_storage(), stream_id).get("ewaste"))
+
+
+@app.post("/streams/{stream_id}/ewaste/drives/{drive_id}/wipe")
+def wipe_drive(stream_id: str, drive_id: str, body: DriveWipeRequest) -> dict:
+    storage = _storage()
+    stream = _get_stream_or_404(storage, stream_id)
+    batch = stream.get("ewaste")
+    if not batch:
+        raise HTTPException(status_code=409, detail="no e-waste batch registered for this stream")
+    try:
+        ewaste.record_drive_wipe(storage, stream_id, batch, drive_id, body.method, body.certificate_ref, body.operator)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="no such drive_id")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    storage.update_stream(stream_id, ewaste=batch)
+    return ewaste.summarize(batch)
 
 
 @app.get("/processors")

@@ -61,8 +61,40 @@ export const api = {
 
   getStream: (streamId) => request(`/streams/${streamId}`),
 
-  getRoute: (streamId, w, itemIndex = 0) =>
-    request(`/streams/${streamId}/route?w=${w}&item_index=${itemIndex}`),
+  getRoute: (streamId, w, itemIndex = 0, evidenceWeight = 0) =>
+    request(`/streams/${streamId}/route?w=${w}&item_index=${itemIndex}&evidence_weight=${evidenceWeight}`),
+
+  getReviewQueue: () => request("/review-queue"),
+
+  submitReview: (streamId, body) =>
+    request(`/streams/${streamId}/review`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+
+  advanceHandoff: (streamId, body) =>
+    request(`/streams/${streamId}/handoff`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+
+  registerEwaste: (streamId, devices) =>
+    request(`/streams/${streamId}/ewaste`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ devices }),
+    }),
+
+  getEwaste: (streamId) => request(`/streams/${streamId}/ewaste`),
+
+  wipeDrive: (streamId, driveId, body) =>
+    request(`/streams/${streamId}/ewaste/drives/${driveId}/wipe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
 
   confirmWipe: (streamId) => request(`/streams/${streamId}/wipe`, { method: "POST" }),
 

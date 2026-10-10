@@ -5,7 +5,7 @@ acceptance check requires parsing vision output into a real Characterization mod
 """
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Item(BaseModel):
@@ -21,8 +21,11 @@ class Item(BaseModel):
     purity: Literal["high", "mixed", "unknown"]
     hazardous: bool
     is_storage_device: bool
-    confidence: float  # 0 to 1
+    confidence: float  # 0 to 1, the model's own score (not calibrated)
     reasoning: str
+    # Visible contaminants the model names (for example "steel pieces mixed in", "oil stains").
+    # Plain strings, no percentages: a purity figure is not shown because nothing validates one.
+    contaminants: list[str] = Field(default_factory=list)
 
 
 class Characterization(BaseModel):
@@ -30,7 +33,7 @@ class Characterization(BaseModel):
     overall_confidence: float
 
 
-StreamStatus = Literal["SUBMITTED", "CHARACTERIZING", "ROUTED", "NEEDS_REVIEW", "FAILED"]
+StreamStatus = Literal["SUBMITTED", "CHARACTERIZING", "ROUTED", "NEEDS_REVIEW", "REJECTED", "FAILED"]
 HandoffStatus = Literal["requested", "matched", "collected", "weighed", "verified"]
 
 
@@ -100,10 +103,17 @@ class ProcessorCandidate(BaseModel):
     authorization_gate_passed: bool   # accepts the material and clears the hazardous-item gate; NOT a statement that it is authorized
     authorization_label: str          # "demo only, authorization not checked" when no authorization_ref
     review_required: bool
+    gross_rupees: float | None = None
+    transport_cost_rupees: float = 0.0
+    transport_co2e_kg: float = 0.0
+    evidence_level: int = 0       # 0 none, 1 reference unchecked, 2 reference with check date
+    evidence_score: float = 0.0
+    why_not_picked: str | None = None
 
 
 class RoutingDecision(BaseModel):
     slider_w: float               # 0 = max money, 1 = max carbon
+    evidence_weight: float = 0.0  # share of the score given to authorization evidence on file
     candidates: list[ProcessorCandidate]  # ranked, best first (scored candidates only)
     unscored_candidates: list[dict] = []  # eligible but missing price/CO2e data or not authorization-checked
     picked_processor_id: str | None

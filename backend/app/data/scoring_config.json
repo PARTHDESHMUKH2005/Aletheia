@@ -1,0 +1,17 @@
+{
+  "_meta": {
+    "note": "Every value here is a transparent, editable assumption. The routing score is computed in code from these numbers; no language model chooses a price, a winner or a compliance status. Restart the server after editing.",
+    "basis": "illustrative_assumption"
+  },
+  "transport_cost_inr_per_tonne_km": 3.0,
+  "transport_co2e_kg_per_tonne_km": 0.062,
+  "equal_spread_threshold": 0.02,
+  "default_max_distance_km": 500.0,
+  "default_money_carbon_weight": 0.5,
+  "default_evidence_weight": 0.0,
+  "evidence_levels": {
+    "0": "no authorization reference on file",
+    "1": "authorization reference on file, never checked",
+    "2": "authorization reference on file with a check date (confirm with the official CPCB or State Board source)"
+  }
+}
