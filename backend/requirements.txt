@@ -1,0 +1,12 @@
+strands-agents>=1.59,<2
+fastapi>=0.143,<1
+uvicorn[standard]>=0.54,<1
+pydantic>=2.14,<3
+mangum>=0.22,<1
+boto3>=1.43,<2
+pytest>=9.1,<10
+reportlab>=5.0,<6
+
+# Fallback model provider while Bedrock access/credentials are not yet confirmed.
+# Remove once Phase 3 commits to Bedrock-only.
+google-genai>=2.29,<3

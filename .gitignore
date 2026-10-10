@@ -1,0 +1,15 @@
+.env
+*.pem
+__pycache__/
+*.pyc
+.aws-sam/
+node_modules/
+.venv/
+*.db
+*.sqlite3
+.local_data/
+dist/
+build/
+.pytest_cache/
+.python-version
+.DS_Store

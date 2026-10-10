@@ -1,0 +1,47 @@
+[
+  {
+    "material": "steel_scrap",
+    "grade_note": "Melting Scrap, HMS (80:20)",
+    "price_per_kg_inr": 32.8,
+    "location": "Mumbai",
+    "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024",
+    "as_of": "2024-12-13",
+    "notes": "Wholesale feedstock price (what a mill/foundry pays for bulk HMS), not a confirmed local scrap-dealer buy rate for small lots. Treat as a ceiling reference until a real dealer quote replaces it."
+  },
+  {
+    "material": "steel_scrap",
+    "grade_note": "Melting Scrap, HMS (80:20)",
+    "price_per_kg_inr": 31.8,
+    "location": "Jalna",
+    "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024",
+    "as_of": "2024-12-13",
+    "notes": "Wholesale feedstock price, not a confirmed local scrap-dealer buy rate for small lots."
+  },
+  {
+    "material": "steel_scrap",
+    "grade_note": "Melting Scrap, HMS (80:20)",
+    "price_per_kg_inr": 33.8,
+    "location": "Mandi Gobindgarh",
+    "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024",
+    "as_of": "2024-12-13",
+    "notes": "Wholesale feedstock price, not a confirmed local scrap-dealer buy rate for small lots. Mandi Gobindgarh matches BUILD.md section 7's suggested foundry region."
+  },
+  {
+    "material": "copper_scrap",
+    "grade_note": "Copper Armature Scrap, Cu 99%",
+    "price_per_kg_inr": 740.0,
+    "location": "Delhi",
+    "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024",
+    "as_of": "2024-12-13",
+    "notes": "Wholesale feedstock price, not a confirmed local scrap-dealer buy rate for small lots."
+  },
+  {
+    "material": "copper_scrap",
+    "grade_note": "Copper Armature Scrap, BME, Cu 98%",
+    "price_per_kg_inr": 774.0,
+    "location": "Mumbai",
+    "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024",
+    "as_of": "2024-12-13",
+    "notes": "Wholesale feedstock price, not a confirmed local scrap-dealer buy rate for small lots."
+  }
+]

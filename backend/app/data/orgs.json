@@ -1,0 +1,23 @@
+[
+  {
+    "id": "org_campus_workshop",
+    "name": "Campus Workshop",
+    "type": "university",
+    "location": {"lat": 30.3398, "lng": 76.3869, "address": "Patiala, Punjab (illustrative)"},
+    "seeded": true
+  },
+  {
+    "id": "org_campus_lab",
+    "name": "Campus Lab",
+    "type": "university",
+    "location": {"lat": 30.3398, "lng": 76.3869, "address": "Patiala, Punjab (illustrative)"},
+    "seeded": true
+  },
+  {
+    "id": "org_data_center",
+    "name": "Data Center",
+    "type": "data center",
+    "location": {"lat": 30.7046, "lng": 76.7179, "address": "Mohali, Punjab (illustrative)"},
+    "seeded": true
+  }
+]

@@ -1,0 +1,130 @@
+"""LocalStorage: SQLite + local disk implementation of storage/base.py.
+
+SQLite file and uploaded-photo blobs both live under backend/.local_data/,
+gitignored, created on first use. Not shared with the data/ directory, which
+holds only the static JSON shipped with the repo (rules, processors, etc.).
+"""
+import json
+import sqlite3
+import time
+from pathlib import Path
+from typing import Any
+
+from app.storage.base import Storage
+
+_LOCAL_DATA_DIR = Path(__file__).resolve().parent.parent.parent / ".local_data"
+_DB_PATH = _LOCAL_DATA_DIR / "loopback.db"
+
+_SCHEMA = """
+CREATE TABLE IF NOT EXISTS waste_streams (
+    stream_id TEXT PRIMARY KEY,
+    data TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS cache (
+    image_sha TEXT PRIMARY KEY,
+    characterization TEXT NOT NULL,
+    created_at REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ledger (
+    chain_id TEXT NOT NULL,
+    link_no INTEGER NOT NULL,
+    event TEXT NOT NULL,
+    payload_json TEXT NOT NULL,
+    prev_hash TEXT NOT NULL,
+    entry_hash TEXT NOT NULL,
+    ts TEXT NOT NULL,
+    PRIMARY KEY (chain_id, link_no)
+);
+"""
+
+
+class LocalStorage(Storage):
+    def __init__(self, db_path: Path = _DB_PATH, uploads_dir: Path | None = None):
+        self.db_path = db_path
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._conn = sqlite3.connect(self.db_path)
+        self._conn.executescript(_SCHEMA)
+        self._conn.commit()
+        self.uploads_dir = uploads_dir or (self.db_path.parent / "uploads")
+        self.uploads_dir.mkdir(parents=True, exist_ok=True)
+
+    def save_upload(self, key: str, data: bytes) -> None:
+        (self.uploads_dir / key).write_bytes(data)
+
+    def read_upload(self, key: str) -> bytes:
+        return (self.uploads_dir / key).read_bytes()
+
+    def create_stream(self, stream_id: str, data: dict[str, Any]) -> None:
+        self._conn.execute(
+            "INSERT INTO waste_streams (stream_id, data) VALUES (?, ?)",
+            (stream_id, json.dumps(data)),
+        )
+        self._conn.commit()
+
+    def get_stream(self, stream_id: str) -> dict[str, Any] | None:
+        row = self._conn.execute(
+            "SELECT data FROM waste_streams WHERE stream_id = ?", (stream_id,)
+        ).fetchone()
+        return json.loads(row[0]) if row else None
+
+    def update_stream(self, stream_id: str, **fields: Any) -> None:
+        current = self.get_stream(stream_id)
+        if current is None:
+            raise KeyError(f"no such stream: {stream_id}")
+        current.update(fields)
+        self._conn.execute(
+            "UPDATE waste_streams SET data = ? WHERE stream_id = ?",
+            (json.dumps(current), stream_id),
+        )
+        self._conn.commit()
+
+    def get_cached_characterization(self, image_sha: str) -> dict[str, Any] | None:
+        row = self._conn.execute(
+            "SELECT characterization FROM cache WHERE image_sha = ?", (image_sha,)
+        ).fetchone()
+        return json.loads(row[0]) if row else None
+
+    def set_cached_characterization(self, image_sha: str, characterization: dict[str, Any]) -> None:
+        self._conn.execute(
+            "INSERT OR REPLACE INTO cache (image_sha, characterization, created_at) VALUES (?, ?, ?)",
+            (image_sha, json.dumps(characterization), time.time()),
+        )
+        self._conn.commit()
+
+    def get_ledger_head(self, chain_id: str) -> dict[str, Any] | None:
+        row = self._conn.execute(
+            "SELECT chain_id, link_no, event, payload_json, prev_hash, entry_hash, ts "
+            "FROM ledger WHERE chain_id = ? ORDER BY link_no DESC LIMIT 1",
+            (chain_id,),
+        ).fetchone()
+        return self._row_to_entry(row) if row else None
+
+    def append_ledger_entry(self, entry: dict[str, Any]) -> bool:
+        try:
+            self._conn.execute(
+                "INSERT INTO ledger (chain_id, link_no, event, payload_json, prev_hash, entry_hash, ts) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    entry["chain_id"], entry["link_no"], entry["event"],
+                    entry["payload_json"], entry["prev_hash"], entry["entry_hash"], entry["ts"],
+                ),
+            )
+            self._conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+
+    def get_ledger_chain(self, chain_id: str) -> list[dict[str, Any]]:
+        rows = self._conn.execute(
+            "SELECT chain_id, link_no, event, payload_json, prev_hash, entry_hash, ts "
+            "FROM ledger WHERE chain_id = ? ORDER BY link_no ASC",
+            (chain_id,),
+        ).fetchall()
+        return [self._row_to_entry(row) for row in rows]
+
+    @staticmethod
+    def _row_to_entry(row) -> dict[str, Any]:
+        return {
+            "chain_id": row[0], "link_no": row[1], "event": row[2],
+            "payload_json": row[3], "prev_hash": row[4], "entry_hash": row[5], "ts": row[6],
+        }
