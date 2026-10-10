@@ -7,6 +7,7 @@ boto3>=1.43,<2
 pytest>=9.1,<10
 reportlab>=5.0,<6
 
-# Fallback model provider while Bedrock access/credentials are not yet confirmed.
-# Remove once Phase 3 commits to Bedrock-only.
+# Gemini is the default model provider (LLM_PROVIDER=gemini in config.py).
 google-genai>=2.29,<3
+# Needed only for LLM_PROVIDER=qwen (routed through the OpenAI-compatible client). Untested.
+openai>=2.0,<3

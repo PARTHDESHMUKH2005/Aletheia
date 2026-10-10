@@ -43,6 +43,18 @@ class Storage(ABC):
         ...
 
     @abstractmethod
+    def list_streams_by_org(self, org_id: str) -> list[dict[str, Any]]: ...
+
+    @abstractmethod
+    def tamper_ledger_entry_for_demo(self, chain_id: str, link_no: int) -> bool:
+        """Dev/demo tool only: corrupts one stored ledger entry's payload_json in
+        place, simulating someone editing the database directly, so /verify can be
+        shown turning red. Returns False if no such entry exists. Never call this
+        outside a demo -- gate it behind config.dev_tools_enabled.
+        """
+        ...
+
+    @abstractmethod
     def save_upload(self, key: str, data: bytes) -> None: ...
 
     @abstractmethod

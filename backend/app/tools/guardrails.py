@@ -88,6 +88,22 @@ def processor_authorized_for(processor: dict, material: str, hazardous: bool) ->
     return bool(processor.get("authorization_ref")) and bool(processor.get("authorization_checked_on"))
 
 
+DEMO_AUTHORIZATION_LABEL = "demo only, authorization not checked"
+
+
+def authorization_label(processor: dict) -> str:
+    """User-facing authorization text. Without a reference it is always the demo
+    label; with one it only reports what is on file, never a verdict.
+    """
+    ref = processor.get("authorization_ref")
+    if not ref:
+        return DEMO_AUTHORIZATION_LABEL
+    checked_on = processor.get("authorization_checked_on")
+    if not checked_on:
+        return f"authorization reference on file ({ref}) but never checked"
+    return f"authorization reference on file ({ref}), last checked {checked_on}; confirm with the official CPCB or State Board source"
+
+
 def can_advance_storage_device(item, ledger_events: list[str]) -> bool:
     """LoopBack policy (STORAGE_DEVICE_POLICY_NOTE), not a legal requirement: a storage
     device cannot move past 'requested' until a data_wipe_confirmed ledger event exists.

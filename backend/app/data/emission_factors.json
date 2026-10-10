@@ -1,0 +1,171 @@
+{
+  "_meta": {
+    "source": "US EPA WARM (US factors used as proxy, not India-specific)",
+    "unit": "kg CO2e per kg",
+    "conversion": "MTCO2E per short ton / 907.185 * 1000",
+    "grid_ref": {
+      "india_grid_tco2_per_mwh": 0.727,
+      "fy": "2023-24",
+      "note": "from a secondary news report on CEA data; verify on cea.nic.in. Not used in any current calculation."
+    },
+    "label": "US proxy, not India-specific",
+    "seeded": true
+  },
+  "factors": [
+    {
+      "material": "aluminium_scrap",
+      "warm_row": "Aluminum Cans",
+      "recycle_kg_per_kg": -10.042,
+      "landfill_kg_per_kg": 0.044,
+      "avoided_kg_per_kg": 10.086,
+      "source": "Metals.pdf Exhibit 7",
+      "verified": true
+    },
+    {
+      "material": "aluminium_scrap_ingot",
+      "warm_row": "Aluminum Ingot",
+      "recycle_kg_per_kg": -7.926,
+      "landfill_kg_per_kg": 0.044,
+      "avoided_kg_per_kg": 7.97,
+      "source": "Metals.pdf Exhibit 7",
+      "verified": true,
+      "notes": "Not mapped to any Item.material in BUILD.md's enum -- kept for reference only, not used by matching.py/report.py."
+    },
+    {
+      "material": "steel_scrap",
+      "warm_row": "Steel Cans",
+      "recycle_kg_per_kg": -1.995,
+      "landfill_kg_per_kg": 0.044,
+      "avoided_kg_per_kg": 2.039,
+      "source": "Metals.pdf Exhibit 7",
+      "verified": true
+    },
+    {
+      "material": "copper_scrap",
+      "warm_row": "Copper Wire",
+      "recycle_kg_per_kg": -5.203,
+      "landfill_kg_per_kg": 0.044,
+      "avoided_kg_per_kg": 5.247,
+      "source": "Metals.pdf Exhibit 7",
+      "verified": true
+    },
+    {
+      "material": "e_waste_computer",
+      "warm_row": "Desktop CPUs",
+      "recycle_kg_per_kg": -1.642,
+      "landfill_kg_per_kg": 0.022,
+      "avoided_kg_per_kg": 1.664,
+      "source": "warm_electronics_v16",
+      "verified": true
+    },
+    {
+      "material": "e_waste_other",
+      "warm_row": "Mixed Electronics",
+      "recycle_kg_per_kg": -0.992,
+      "landfill_kg_per_kg": 0.022,
+      "avoided_kg_per_kg": 1.014,
+      "source": "warm_electronics_v16",
+      "verified": true
+    },
+    {
+      "material": "e_waste_other_portable",
+      "warm_row": "Portable Electronic Devices",
+      "recycle_kg_per_kg": -1.168,
+      "landfill_kg_per_kg": 0.022,
+      "avoided_kg_per_kg": 1.19,
+      "source": "warm_electronics_v16",
+      "verified": true,
+      "notes": "Not mapped to any Item.material in BUILD.md's enum -- kept for reference only, not used by matching.py/report.py."
+    },
+    {
+      "material": "e_waste_other_display",
+      "warm_row": "Flat-Panel Displays",
+      "recycle_kg_per_kg": -1.091,
+      "landfill_kg_per_kg": 0.022,
+      "avoided_kg_per_kg": 1.113,
+      "source": "warm_electronics_v16",
+      "verified": true,
+      "notes": "Not mapped to any Item.material in BUILD.md's enum -- kept for reference only, not used by matching.py/report.py."
+    },
+    {
+      "material": "paper",
+      "warm_row": null,
+      "recycle_kg_per_kg": null,
+      "landfill_kg_per_kg": null,
+      "avoided_kg_per_kg": 3.3,
+      "source": "EPA WARM, mixed paper (rough order-of-magnitude estimate from general knowledge, NOT from the Metals.pdf/warm_electronics_v16 sources above, not a live table lookup)",
+      "verified": false,
+      "notes": "Unsourced estimate -- replace with a real WARM table citation before using in the pitch."
+    },
+    {
+      "material": "cardboard",
+      "warm_row": null,
+      "recycle_kg_per_kg": null,
+      "landfill_kg_per_kg": null,
+      "avoided_kg_per_kg": 3.1,
+      "source": "EPA WARM, corrugated containers (rough order-of-magnitude estimate from general knowledge, not a live table lookup)",
+      "verified": false,
+      "notes": "Unsourced estimate -- replace with a real WARM table citation before using in the pitch."
+    },
+    {
+      "material": "mixed_metal",
+      "warm_row": null,
+      "recycle_kg_per_kg": null,
+      "landfill_kg_per_kg": null,
+      "avoided_kg_per_kg": null,
+      "source": null,
+      "verified": false,
+      "notes": "Mixed-metal streams are routed to review anyway (guardrails.py); no blended factor provided."
+    },
+    {
+      "material": "e_waste_storage_drive",
+      "warm_row": null,
+      "recycle_kg_per_kg": null,
+      "landfill_kg_per_kg": null,
+      "avoided_kg_per_kg": null,
+      "source": null,
+      "verified": false,
+      "notes": "No WARM row supplied for this material yet."
+    },
+    {
+      "material": "battery_lead_acid",
+      "warm_row": null,
+      "recycle_kg_per_kg": null,
+      "landfill_kg_per_kg": null,
+      "avoided_kg_per_kg": null,
+      "source": null,
+      "verified": false,
+      "notes": "No WARM row supplied for this material yet."
+    },
+    {
+      "material": "battery_lithium",
+      "warm_row": null,
+      "recycle_kg_per_kg": null,
+      "landfill_kg_per_kg": null,
+      "avoided_kg_per_kg": null,
+      "source": null,
+      "verified": false,
+      "notes": "No WARM row supplied for this material yet."
+    },
+    {
+      "material": "used_oil",
+      "warm_row": null,
+      "recycle_kg_per_kg": null,
+      "landfill_kg_per_kg": null,
+      "avoided_kg_per_kg": null,
+      "source": null,
+      "verified": false,
+      "notes": "Used-oil re-refining uses a different EPA methodology than WARM; no figure supplied yet."
+    },
+    {
+      "material": "other",
+      "warm_row": null,
+      "recycle_kg_per_kg": null,
+      "landfill_kg_per_kg": null,
+      "avoided_kg_per_kg": null,
+      "source": null,
+      "verified": false,
+      "notes": "Unclassified; routed to review regardless."
+    }
+  ]
+}

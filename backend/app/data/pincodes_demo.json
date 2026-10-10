@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "purpose": "Demo-only pincode to coordinate table. The app never calls an external geocoder; a pincode that is not in this file is rejected.",
+    "coordinate_basis": "APPROXIMATE AREA CENTRES typed in by hand for the demo (roughly the main post-office / city-centre area). They are not surveyed points and not taken from an India Post dataset, so expect errors of a few km. Straight-line distance only.",
+    "verified_against_india_post": false,
+    "extra_entries_note": "400001 (Mumbai) and 132103 (Panipat) are not in the original city list; they were added only because seeded demo processors sit in those cities."
+  },
+  "pincodes": {
+    "147001": {"city": "Patiala", "state": "Punjab", "lat": 30.3398, "lng": 76.3869},
+    "147004": {"city": "Patiala", "state": "Punjab", "lat": 30.3544, "lng": 76.3665},
+    "141001": {"city": "Ludhiana", "state": "Punjab", "lat": 30.9010, "lng": 75.8573},
+    "160017": {"city": "Chandigarh", "state": "Chandigarh", "lat": 30.7398, "lng": 76.7827},
+    "133001": {"city": "Ambala", "state": "Haryana", "lat": 30.3782, "lng": 76.7767},
+    "143001": {"city": "Amritsar", "state": "Punjab", "lat": 31.6340, "lng": 74.8723},
+    "144001": {"city": "Jalandhar", "state": "Punjab", "lat": 31.3260, "lng": 75.5762},
+    "110001": {"city": "Delhi", "state": "Delhi", "lat": 28.6315, "lng": 77.2167},
+    "122001": {"city": "Gurugram", "state": "Haryana", "lat": 28.4595, "lng": 77.0266},
+    "147301": {"city": "Mandi Gobindgarh", "state": "Punjab", "lat": 30.6679, "lng": 76.2959},
+    "400001": {"city": "Mumbai", "state": "Maharashtra", "lat": 18.9387, "lng": 72.8353},
+    "132103": {"city": "Panipat", "state": "Haryana", "lat": 29.3909, "lng": 76.9635}
+  }
+}

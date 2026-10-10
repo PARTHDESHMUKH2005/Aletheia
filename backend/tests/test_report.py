@@ -62,11 +62,17 @@ def test_receipt_carries_emission_factor_source_and_proxy_label():
     receipt = report.counterfactual_receipt(make_item(material="steel_scrap"), FAKE_ROUTING_WITH_PICK)
     assert receipt.emission_factor_available is True
     assert receipt.emission_factor_label == "US proxy, not India-specific"
-    assert "EPA WARM" in receipt.emission_factor_source
+    assert receipt.emission_factor_source == "Metals.pdf Exhibit 7"
+
+
+def test_receipt_shows_unverified_label_for_unsourced_estimates():
+    receipt = report.counterfactual_receipt(make_item(material="paper"), FAKE_ROUTING_WITH_PICK)
+    assert receipt.emission_factor_available is True
+    assert "unverified estimate" in receipt.emission_factor_label
 
 
 def test_receipt_flags_missing_emission_factor_honestly():
-    receipt = report.counterfactual_receipt(make_item(material="copper_scrap"), FAKE_ROUTING_WITH_PICK)
+    receipt = report.counterfactual_receipt(make_item(material="used_oil"), FAKE_ROUTING_WITH_PICK)
     assert receipt.emission_factor_available is False
     assert receipt.emission_factor_label is None
 

@@ -1,1 +1,119 @@
-// Upload page. Built out in Phase 4 (BUILD.md section 9).
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { api, resizeImageToJpeg } from "../api.js";
+import { ORGS } from "../orgs.js";
+
+export default function Upload() {
+  const navigate = useNavigate();
+  const [orgId, setOrgId] = useState(ORGS[0].id);
+  const [file, setFile] = useState(null);
+  const [note, setNote] = useState("");
+  const [quantity, setQuantity] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!file) {
+      setError("Pick a photo first.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const resized = await resizeImageToJpeg(file);
+      const [target] = await api.createUploadTargets(1);
+      await api.putUpload(target.url, resized);
+
+      const { stream_id } = await api.createStream({
+        org_id: orgId,
+        note,
+        quantity_kg: quantity ? parseFloat(quantity) : null,
+        photo_keys: [target.key],
+        pincode: pincode || null,
+      });
+      navigate(`/streams/${stream_id}`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="max-w-md">
+      <h1 className="text-lg font-semibold mb-1">Submit a waste stream</h1>
+      <p className="text-sm text-gray-500 mb-4">Photo, note, quantity, and a pickup pincode.</p>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs text-gray-600 mb-1">Organization</label>
+          <select
+            className="w-full border rounded-md px-3 py-2 text-sm"
+            value={orgId}
+            onChange={(e) => setOrgId(e.target.value)}
+          >
+            {ORGS.map((o) => (
+              <option key={o.id} value={o.id}>{o.name}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs text-gray-600 mb-1">Photo</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="w-full text-sm"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs text-gray-600 mb-1">Note</label>
+          <textarea
+            className="w-full border rounded-md px-3 py-2 text-sm"
+            rows={2}
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="optional note about the item"
+          />
+        </div>
+
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label className="block text-xs text-gray-600 mb-1">Quantity (kg, optional)</label>
+            <input
+              type="number"
+              step="0.1"
+              className="w-full border rounded-md px-3 py-2 text-sm"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-xs text-gray-600 mb-1">Pincode</label>
+            <input
+              type="text"
+              placeholder="e.g. 147001"
+              className="w-full border rounded-md px-3 py-2 text-sm"
+              value={pincode}
+              onChange={(e) => setPincode(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {error && <div className="text-sm text-red-600">{error}</div>}
+
+        <button
+          type="submit"
+          disabled={busy}
+          className="bg-gray-900 text-white text-sm px-4 py-2 rounded-md disabled:opacity-40"
+        >
+          {busy ? "Submitting..." : "Submit stream"}
+        </button>
+      </form>
+    </div>
+  );
+}

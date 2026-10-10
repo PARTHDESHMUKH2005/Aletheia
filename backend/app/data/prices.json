@@ -1,47 +1,7 @@
 [
-  {
-    "material": "steel_scrap",
-    "grade_note": "Melting Scrap, HMS (80:20)",
-    "price_per_kg_inr": 32.8,
-    "location": "Mumbai",
-    "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024",
-    "as_of": "2024-12-13",
-    "notes": "Wholesale feedstock price (what a mill/foundry pays for bulk HMS), not a confirmed local scrap-dealer buy rate for small lots. Treat as a ceiling reference until a real dealer quote replaces it."
-  },
-  {
-    "material": "steel_scrap",
-    "grade_note": "Melting Scrap, HMS (80:20)",
-    "price_per_kg_inr": 31.8,
-    "location": "Jalna",
-    "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024",
-    "as_of": "2024-12-13",
-    "notes": "Wholesale feedstock price, not a confirmed local scrap-dealer buy rate for small lots."
-  },
-  {
-    "material": "steel_scrap",
-    "grade_note": "Melting Scrap, HMS (80:20)",
-    "price_per_kg_inr": 33.8,
-    "location": "Mandi Gobindgarh",
-    "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024",
-    "as_of": "2024-12-13",
-    "notes": "Wholesale feedstock price, not a confirmed local scrap-dealer buy rate for small lots. Mandi Gobindgarh matches BUILD.md section 7's suggested foundry region."
-  },
-  {
-    "material": "copper_scrap",
-    "grade_note": "Copper Armature Scrap, Cu 99%",
-    "price_per_kg_inr": 740.0,
-    "location": "Delhi",
-    "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024",
-    "as_of": "2024-12-13",
-    "notes": "Wholesale feedstock price, not a confirmed local scrap-dealer buy rate for small lots."
-  },
-  {
-    "material": "copper_scrap",
-    "grade_note": "Copper Armature Scrap, BME, Cu 98%",
-    "price_per_kg_inr": 774.0,
-    "location": "Mumbai",
-    "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024",
-    "as_of": "2024-12-13",
-    "notes": "Wholesale feedstock price, not a confirmed local scrap-dealer buy rate for small lots."
-  }
+  {"material": "steel_scrap", "grade_note": "Melting Scrap, HMS (80:20)", "price_per_kg_inr": 32.8, "location": "Mumbai", "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024", "as_of": "2024-12-13", "notes": "Wholesale feedstock price (what a mill/foundry pays for bulk HMS), not a confirmed local scrap-dealer buy rate for small lots. Treat as a ceiling reference until a real dealer quote replaces it.", "price_basis": "sourced", "verified_against": "dataset-resized/Raw Material Prices December 2024.pdf, row 26: INR 32,800/tonne = INR 32.8/kg (checked 2026-10-10). The PDF prints '13 Dec' with no year; 2024 comes from its title/filename."},
+  {"material": "steel_scrap", "grade_note": "Melting Scrap, HMS (80:20)", "price_per_kg_inr": 31.8, "location": "Jalna", "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024", "as_of": "2024-12-13", "notes": "Wholesale feedstock price, not a confirmed local scrap-dealer buy rate for small lots.", "price_basis": "sourced", "verified_against": "dataset-resized/Raw Material Prices December 2024.pdf, row 27: INR 31,800/tonne = INR 31.8/kg (checked 2026-10-10). The PDF prints '13 Dec' with no year; 2024 comes from its title/filename."},
+  {"material": "steel_scrap", "grade_note": "Melting Scrap, HMS (80:20)", "price_per_kg_inr": 33.8, "location": "Mandi Gobindgarh", "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024", "as_of": "2024-12-13", "notes": "Wholesale feedstock price, not a confirmed local scrap-dealer buy rate for small lots. Mandi Gobindgarh matches BUILD.md section 7's suggested foundry region.", "price_basis": "sourced", "verified_against": "dataset-resized/Raw Material Prices December 2024.pdf, row 31: INR 33,800/tonne = INR 33.8/kg (checked 2026-10-10). The PDF prints '13 Dec' with no year; 2024 comes from its title/filename."},
+  {"material": "copper_scrap", "grade_note": "Copper Armature Scrap, Cu 99%", "price_per_kg_inr": 740.0, "location": "Delhi", "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024", "as_of": "2024-12-13", "notes": "Wholesale feedstock price, not a confirmed local scrap-dealer buy rate for small lots.", "price_basis": "sourced", "verified_against": "dataset-resized/Raw Material Prices December 2024.pdf, row 1: INR 740,000/tonne = INR 740/kg (checked 2026-10-10). The PDF prints '13 Dec' with no year; 2024 comes from its title/filename."},
+  {"material": "copper_scrap", "grade_note": "Copper Armature Scrap, BME, Cu 98%", "price_per_kg_inr": 774.0, "location": "Mumbai", "source": "BigMint, India's ferrous & non ferrous raw material prices, December 2024", "as_of": "2024-12-13", "notes": "Wholesale feedstock price, not a confirmed local scrap-dealer buy rate for small lots.", "price_basis": "sourced", "verified_against": "dataset-resized/Raw Material Prices December 2024.pdf, row 2: INR 774,000/tonne = INR 774/kg (checked 2026-10-10). The PDF prints '13 Dec' with no year; 2024 comes from its title/filename."}
 ]

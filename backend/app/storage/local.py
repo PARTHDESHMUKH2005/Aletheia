@@ -78,6 +78,23 @@ class LocalStorage(Storage):
         )
         self._conn.commit()
 
+    def list_streams_by_org(self, org_id: str) -> list[dict[str, Any]]:
+        rows = self._conn.execute("SELECT stream_id, data FROM waste_streams").fetchall()
+        result = []
+        for stream_id, data_json in rows:
+            data = json.loads(data_json)
+            if data.get("org_id") == org_id:
+                result.append({"stream_id": stream_id, **data})
+        return result
+
+    def tamper_ledger_entry_for_demo(self, chain_id: str, link_no: int) -> bool:
+        cursor = self._conn.execute(
+            "UPDATE ledger SET payload_json = ? WHERE chain_id = ? AND link_no = ?",
+            (json.dumps({"tampered_by": "demo tool", "at": time.time()}), chain_id, link_no),
+        )
+        self._conn.commit()
+        return cursor.rowcount > 0
+
     def get_cached_characterization(self, image_sha: str) -> dict[str, Any] | None:
         row = self._conn.execute(
             "SELECT characterization FROM cache WHERE image_sha = ?", (image_sha,)

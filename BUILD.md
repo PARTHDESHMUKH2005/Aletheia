@@ -82,10 +82,21 @@ Status values for a stream: `SUBMITTED`, `CHARACTERIZING`, `ROUTED`, `NEEDS_REVI
 
 ## 3. Stack and model choice
 
+**MODEL PROVIDER OVERRIDE (supersedes any Qwen-only text that may still appear
+elsewhere in this file -- that phrasing is stale from an earlier draft and was
+never the build's actual direction):** Gemini is the default and currently
+implemented provider. Qwen and Bedrock remain reachable by changing
+`LLM_PROVIDER` in `config.py` -- nothing is hardcoded to Gemini outside that
+one file -- but Qwen has not been tested end to end (no Qwen credentials were
+available during the build; its model IDs and base URL in `config.py` are
+unverified guesses). If anything later in this document still says Qwen is the
+default or describes a `VisionClient`/`QwenVision` abstraction, treat section 3
+here as authoritative instead.
+
 | Layer | Local | AWS |
 |---|---|---|
 | Agent | Strands Agents SDK | Strands Agents SDK |
-| Model | Qwen API (Alibaba Cloud Model Studio, OpenAI-compatible endpoint) | the same Qwen API by default; Bedrock only if you add that adapter later |
+| Model | Gemini, via Strands' `GeminiModel` (default); Qwen or Bedrock by changing `LLM_PROVIDER` | same provider, reached over the internet from Lambda; a Bedrock adapter is the natural AWS-native option if you want IAM-based access instead of an API key |
 | Backend | FastAPI, Pydantic | same app via Mangum in the `api` Lambda |
 | Worker | FastAPI BackgroundTasks | `pipeline` Lambda (async invoke) |
 | Database | SQLite | DynamoDB (on-demand) |
@@ -99,27 +110,26 @@ Strands Agents SDK is on the hackathon "Build It" list, and SAM CLI is too. Depl
 
 ### Model choice
 
-- All model calls go to the Qwen API (Alibaba Cloud Model Studio) through its OpenAI-compatible endpoint. No OpenAI or Anthropic APIs are used.
-- **Orchestrator:** Strands `OpenAIModel` pointed at the Qwen endpoint with a text model. It never sees images.
-- **Characterizer:** the `openai` client pointed at the same endpoint with a vision model, using `image_url` content blocks (base64 data URLs). This avoids depending on how Strands passes images to a given provider.
-- **Two vision tiers:** a cheaper one first, a stronger one only on low confidence. Alibaba's docs use `qwen3-vl-plus` in their examples. **VERIFY** current model names, prices and image limits in the Model Studio console, and pick the tiers from there.
-- **Base URL:** Alibaba's docs give a workspace-specific Singapore address, `https://{WorkspaceId}.ap-southeast-1.maas.aliyuncs.com/compatible-mode/v1`, and say the older `https://dashscope-intl.aliyuncs.com` domain still works. **VERIFY** which one your account uses. Keys are tied to a region, so the key and the base URL must come from the same region.
-- **Key:** `DASHSCOPE_API_KEY`. Keep it in `.env` locally and out of git.
-- Strands tool calling and `structured_output` work through the OpenAI provider (`pip install 'strands-agents[openai]'`). **VERIFY** that your chosen Qwen text model handles tool calls reliably, and test this early.
-- Photos are sent to Alibaba Cloud servers. Use only waste photos with no faces or personal documents, and say so in the README.
-- Moving to AWS does not force a model change. Lambda calls the Qwen API over the internet. A Bedrock adapter can be added later behind the same `VisionClient` interface.
+- All model calls go through `app/config.py`'s `get_model(tier)` factory, selected by `LLM_PROVIDER` (`gemini` by default). Nothing else in the codebase imports a provider SDK directly.
+- **Orchestrator:** a Strands `Agent` with the configured text/vision model. It never sees images.
+- **Characterizer:** a tool-less Strands `Agent` call using `agent(prompt, structured_output_model=Characterization)` (the current, non-deprecated structured-output API in strands-agents>=1.59), with images passed as Strands `ContentBlock`s (`{"image": {"format": ..., "source": {"bytes": ...}}}`). This is the one place images enter a model.
+- **Two tiers:** `fast` first; `strong` only once, if `overall_confidence < 0.7`. Never loops.
+- **Gemini model IDs actually verified against a live account:** `gemini-3.8-flash` (fast/orch), `gemini-pro-latest` (strong) -- `gemini-2.5-*` IDs are rejected for newer API keys ("no longer available to new users"). Re-verify before relying on any specific ID; Gemini's catalog moves fast.
+- **Key:** `GEMINI_API_KEY`. Loaded from a local `.env` (gitignored) by `config.py` itself, so both `uvicorn` and the standalone scripts pick it up the same way.
+- **Qwen (untested):** routed through Strands' `OpenAIModel` pointed at an OpenAI-compatible endpoint (`QWEN_API_KEY`, `QWEN_BASE_URL`, default guessed at DashScope's `https://dashscope.aliyuncs.com/compatible-mode/v1`). **VERIFY** base URL, model IDs and tool-calling reliability against a real account before using this path.
+- Photos are sent to the model provider (Google for Gemini). Upload only waste photos, no faces or documents, and say so in the README.
+- Moving to AWS does not force a model change. Lambda can call the same provider over the internet; a Bedrock adapter is already wired in `config.py` if you want to switch.
 
 Environment variables (all read in `config.py`):
 
 | Variable | Meaning |
 |---|---|
 | `STORAGE` | `local` or `aws` |
-| `LLM_PROVIDER` | `qwen` (default) |
-| `LLM_BASE_URL` | OpenAI-compatible base URL for your region |
-| `DASHSCOPE_API_KEY` | secret, never committed |
-| `MODEL_VISION_FAST`, `MODEL_VISION_STRONG` | vision model names (cheap tier, strong tier) |
-| `MODEL_ORCH` | text model for the Strands orchestrator |
-| `TIME_BUDGET_MS` | local only; Lambda uses the remaining invocation time |
+| `LLM_PROVIDER` | `gemini` (default), `bedrock`, or `qwen` (untested) |
+| `GEMINI_API_KEY` | secret, never committed; required when `LLM_PROVIDER=gemini` |
+| `QWEN_API_KEY`, `QWEN_BASE_URL` | only used when `LLM_PROVIDER=qwen`; unverified |
+| `MODEL_FAST`, `MODEL_STRONG`, `MODEL_ORCH` | override the per-provider default model IDs |
+| `ENV` | `local` (default) or `production` -- gates dev-only tools like the ledger tamper endpoint |
 
 ## 4. Data model
 

@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>LoopBack (demo)</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, system-ui, sans-serif; max-width: 760px; margin: 0 auto; padding: 24px 16px 96px; color: #1a1a1a; background: #fafafa; }
+  h1 { font-size: 20px; margin-bottom: 2px; }
+  .sub { color: #666; font-size: 13px; margin-bottom: 20px; }
+  section { background: #fff; border: 1px solid #e3e3e3; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+  section h2 { font-size: 14px; margin: 0 0 10px; color: #333; }
+  label { display: block; font-size: 12px; color: #555; margin: 10px 0 4px; }
+  input, textarea, select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+  button { background: #1a1a1a; color: #fff; border: none; border-radius: 6px; padding: 9px 14px; font-size: 13px; cursor: pointer; margin-top: 10px; }
+  button:disabled { opacity: 0.4; cursor: default; }
+  button.secondary { background: #fff; color: #1a1a1a; border: 1px solid #ccc; }
+  .row { display: flex; gap: 10px; }
+  .row > div { flex: 1; }
+  .status { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .status.ROUTED { background: #e3f6e8; color: #1a7a3a; }
+  .status.NEEDS_REVIEW { background: #fff3cd; color: #8a6400; }
+  .status.FAILED { background: #fde2e1; color: #a3271f; }
+  .status.SUBMITTED, .status.CHARACTERIZING { background: #e8eef7; color: #2b4f81; }
+  .seeded-tag { font-size: 10px; background: #eee; color: #666; padding: 1px 6px; border-radius: 999px; margin-left: 6px; }
+  .candidate { border: 1px solid #e3e3e3; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 13px; }
+  .candidate.picked { border-color: #1a7a3a; background: #f3fbf5; }
+  .muted { color: #777; font-size: 12px; }
+  .ok-green { color: #1a7a3a; font-weight: 700; }
+  .ok-red { color: #a3271f; font-weight: 700; }
+  pre { background: #f4f4f4; padding: 10px; border-radius: 6px; font-size: 11px; overflow-x: auto; }
+  footer { position: fixed; bottom: 0; left: 0; right: 0; background: #1a1a1a; color: #fff; font-size: 11px; text-align: center; padding: 8px; }
+  .illustrative { color: #a36a00; }
+</style>
+</head>
+<body>
+
+<h1>LoopBack</h1>
+<div class="sub">Demo page -- not the Phase 4 React app. Talks directly to the local FastAPI backend.</div>
+
+<section id="submit-section">
+  <h2>1. Submit a waste stream</h2>
+  <label>Organization</label>
+  <select id="org">
+    <option value="org_campus_workshop">Campus Workshop</option>
+    <option value="org_campus_lab">Campus Lab</option>
+    <option value="org_data_center">Data Center</option>
+  </select>
+  <label>Photo</label>
+  <input type="file" id="photo" accept="image/*" />
+  <label>Note</label>
+  <textarea id="note" rows="2" placeholder="optional note about the item"></textarea>
+  <div class="row">
+    <div>
+      <label>Quantity (kg, optional)</label>
+      <input type="number" id="quantity" step="0.1" />
+    </div>
+    <div>
+      <label>Pincode</label>
+      <input type="text" id="pincode" placeholder="e.g. 147001" />
+    </div>
+  </div>
+  <button id="submit-btn">Submit stream</button>
+  <div id="submit-status" class="muted"></div>
+</section>
+
+<section id="result-section" style="display:none">
+  <h2>2. Decision <span id="status-badge"></span></h2>
+  <div id="characterization"></div>
+
+  <div id="slider-block" style="display:none">
+    <label>Routing slider: 0 = max money, 1 = max carbon</label>
+    <input type="range" id="slider" min="0" max="1" step="0.05" value="0.5" />
+    <div id="routing"></div>
+    <div id="receipt"></div>
+    <button id="request-pickup-btn" class="secondary">Request pickup (draft only, never sent)</button>
+    <div id="draft-message"></div>
+  </div>
+</section>
+
+<section id="verify-section">
+  <h2>3. Verify ledger</h2>
+  <label>Chain ID (= stream ID)</label>
+  <input type="text" id="verify-id" placeholder="paste a stream_id" />
+  <button id="verify-btn" class="secondary">Verify</button>
+  <button id="tamper-btn" class="secondary">Tamper link 1 (demo tool)</button>
+  <div id="verify-result"></div>
+</section>
+
+<section id="processors-section">
+  <h2>4. Seeded processors</h2>
+  <div id="processors-list" class="muted">Loading...</div>
+</section>
+
+<footer>Routing aid only. Confirm rules and processor authorization with the official CPCB or State Board source. Processors below are seeded example data, not verified entities. Photos are sent to the model provider (Google for Gemini). Upload only waste photos, no faces or documents.</footer>
+
+<script>
+const API = "";
+let currentStreamId = null;
+
+function badge(status) {
+  return `<span class="status ${status}">${status}</span>`;
+}
+
+async function loadProcessors() {
+  const res = await fetch(`${API}/processors`);
+  const processors = await res.json();
+  document.getElementById("processors-list").innerHTML = processors.map(p => `
+    <div class="candidate">
+      <strong>${p.name}</strong> <span class="seeded-tag">seeded</span>
+      <div class="muted">${p.tier} &middot; accepts: ${p.accepted_materials.join(", ")}</div>
+    </div>`).join("");
+}
+
+document.getElementById("submit-btn").onclick = async () => {
+  const fileInput = document.getElementById("photo");
+  if (!fileInput.files.length) { alert("pick a photo first"); return; }
+  const btn = document.getElementById("submit-btn");
+  btn.disabled = true;
+  document.getElementById("submit-status").textContent = "Uploading...";
+
+  const uploadRes = await fetch(`${API}/uploads`, {
+    method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({count: 1}),
+  });
+  const [target] = await uploadRes.json();
+  await fetch(`${API}${target.url}`, { method: "PUT", body: fileInput.files[0] });
+
+  const quantity = document.getElementById("quantity").value;
+  const streamRes = await fetch(`${API}/streams`, {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      org_id: document.getElementById("org").value,
+      note: document.getElementById("note").value,
+      quantity_kg: quantity ? parseFloat(quantity) : null,
+      photo_keys: [target.key],
+      pincode: document.getElementById("pincode").value || null,
+    }),
+  });
+  const { stream_id } = await streamRes.json();
+  currentStreamId = stream_id;
+  document.getElementById("verify-id").value = stream_id;
+  document.getElementById("submit-status").textContent = `stream_id=${stream_id} -- polling...`;
+  document.getElementById("result-section").style.display = "block";
+  pollStream(stream_id);
+};
+
+async function pollStream(streamId) {
+  const res = await fetch(`${API}/streams/${streamId}`);
+  const stream = await res.json();
+  document.getElementById("status-badge").innerHTML = badge(stream.status);
+
+  if (["SUBMITTED", "CHARACTERIZING"].includes(stream.status)) {
+    setTimeout(() => pollStream(streamId), 2000);
+    return;
+  }
+  document.getElementById("submit-btn").disabled = false;
+  document.getElementById("submit-status").textContent = "Done.";
+
+  if (stream.characterization) {
+    const item = stream.characterization.items[0];
+    document.getElementById("characterization").innerHTML = `
+      <div class="candidate">
+        <strong>${item.material}</strong> (confidence ${item.confidence})
+        <div class="muted">${item.composition_note}</div>
+        <div class="muted">${item.quantity_kg ?? "?"} kg (${item.quantity_basis})</div>
+      </div>`;
+    document.getElementById("slider-block").style.display = "block";
+    updateRoute(streamId, 0.5);
+    document.getElementById("slider").oninput = (e) => updateRoute(streamId, parseFloat(e.target.value));
+  }
+}
+
+async function updateRoute(streamId, w) {
+  const res = await fetch(`${API}/streams/${streamId}/route?w=${w}`);
+  if (!res.ok) { document.getElementById("routing").innerHTML = `<div class="muted">Route not available yet.</div>`; return; }
+  const body = await res.json();
+  const routing = body.routing;
+  const receipt = body.receipt;
+
+  document.getElementById("routing").innerHTML = `
+    <div class="muted">${routing.explanation}</div>
+    ${routing.candidates.map(c => `
+      <div class="candidate ${c.processor_id === routing.picked_processor_id ? "picked" : ""}">
+        <strong>${c.name}</strong> <span class="seeded-tag">seeded</span>
+        ${c.price_basis === "illustrative_assumption" ? '<span class="illustrative">(illustrative price)</span>' : ""}
+        <div class="muted">${c.distance_km} km &middot; ₹${c.price_per_kg_inr}/kg &middot; recovery_rate ${c.recovery_rate} (assumption)</div>
+        <div class="muted">net ₹${c.net_rupees?.toFixed(2)} &middot; net ${c.net_co2e_kg?.toFixed(2)} kg CO2e avoided</div>
+      </div>`).join("")}
+    ${routing.unscored_candidates.length ? `<div class="muted">${routing.unscored_candidates.length} eligible but unscored (${routing.unscored_candidates.map(c=>c.reason_unscored).join("; ")})</div>` : ""}
+    ${routing.review_required ? `<div class="status NEEDS_REVIEW" style="display:inline-block;margin-top:6px">needs human review</div>` : ""}
+  `;
+
+  document.getElementById("receipt").innerHTML = `
+    <div class="candidate">
+      <strong>Counterfactual receipt</strong>
+      <div class="muted">${receipt.default_case.label}: ₹${receipt.default_case.value_inr} / ${receipt.default_case.co2e_kg} kg CO2e</div>
+      <div class="muted">${receipt.chosen_case.label}: ₹${receipt.chosen_case.value_inr?.toFixed?.(2) ?? receipt.chosen_case.value_inr} / ${receipt.chosen_case.co2e_kg?.toFixed?.(2) ?? receipt.chosen_case.co2e_kg} kg CO2e</div>
+      <div><strong>Diff: ₹${receipt.diff_rupees?.toFixed?.(2) ?? "n/a"} &middot; ${receipt.diff_co2e_kg?.toFixed?.(2) ?? "n/a"} kg CO2e</strong></div>
+      ${receipt.price_range ? `<div class="muted">Price range: ₹${receipt.price_range.low_inr_per_kg}-${receipt.price_range.high_inr_per_kg}/kg, source: ${receipt.price_range.source} (${receipt.price_range.as_of})</div>` : '<div class="muted">No sourced price range for this material.</div>'}
+      <div class="muted">CO2e factor: ${receipt.emission_factor_available ? `${receipt.emission_factor_source} -- ${receipt.emission_factor_label}` : "not available for this material"}</div>
+    </div>`;
+
+  window._lastPickedProcessor = routing.picked_processor_id;
+}
+
+document.getElementById("request-pickup-btn").onclick = async () => {
+  if (!currentStreamId || !window._lastPickedProcessor) return;
+  const res = await fetch(`${API}/streams/${currentStreamId}/draft-message?processor_id=${window._lastPickedProcessor}`, { method: "POST" });
+  const body = await res.json();
+  document.getElementById("draft-message").innerHTML = `
+    <pre>${body.draft_message}</pre>
+    <div class="muted"><strong>${body.label}</strong></div>`;
+};
+
+document.getElementById("verify-btn").onclick = async () => {
+  const id = document.getElementById("verify-id").value;
+  if (!id) return;
+  const res = await fetch(`${API}/verify/${id}`);
+  const body = await res.json();
+  document.getElementById("verify-result").innerHTML = body.ok
+    ? `<div class="ok-green">OK -- ${body.links} link(s), chain intact.</div>`
+    : `<div class="ok-red">BROKEN at link ${body.first_broken} of ${body.links}.</div>`;
+};
+
+document.getElementById("tamper-btn").onclick = async () => {
+  const id = document.getElementById("verify-id").value;
+  if (!id) return;
+  const res = await fetch(`${API}/dev/tamper/${id}?link_no=1`, { method: "POST" });
+  if (res.status === 403) { alert("Dev tools disabled in this environment."); return; }
+  alert("Tampered link 1. Click Verify again.");
+};
+
+loadProcessors();
+</script>
+</body>
+</html>

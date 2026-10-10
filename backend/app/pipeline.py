@@ -5,10 +5,10 @@ status is already past SUBMITTED. Per-step timing logs, one JSON line each.
 import json
 import logging
 import time
-from pathlib import Path
 
 from app.models import Characterization
 from app.tools.characterize import PhotoBlock, characterize_waste
+from app.tools.geo import LocationError, resolve_pincode
 from app.tools.guardrails import out_of_scope_flag
 from app.tools.ledger import record_handoff
 from app.tools.matching import find_processors
@@ -16,8 +16,6 @@ from app.tools.report import counterfactual_receipt
 
 logger = logging.getLogger("loopback.pipeline")
 
-_DATA_DIR = Path(__file__).resolve().parent / "data"
-_ORGS: dict[str, dict] = {row["id"]: row for row in json.loads((_DATA_DIR / "orgs.json").read_text())}
 
 LOW_CONFIDENCE_THRESHOLD = 0.7
 HAZARDOUS_CONFIDENCE_THRESHOLD = 0.85
@@ -26,6 +24,15 @@ HAZARDOUS_CONFIDENCE_THRESHOLD = 0.85
 def _guess_format(key: str) -> str:
     ext = key.rsplit(".", 1)[-1].lower() if "." in key else "jpeg"
     return "jpeg" if ext == "jpg" else ext
+
+
+def _fail_with_user_message(storage, stream_id: str, exc: LocationError) -> dict:
+    """Location problems are the caller's to fix, so the stream is marked FAILED with
+    the message as-is (stream["error"]) instead of raising out of the worker.
+    """
+    storage.update_stream(stream_id, status="FAILED", error=str(exc))
+    logger.info(json.dumps({"step": "pipeline", "stream_id": stream_id, "status": "FAILED", "error": str(exc)}))
+    return storage.get_stream(stream_id)
 
 
 def run_pipeline(stream_id: str, storage=None) -> dict:
@@ -41,6 +48,13 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
         logger.info(json.dumps({"step": "pipeline", "stream_id": stream_id, "skipped": True, "status": stream["status"]}))
         return stream
 
+    # The pickup point comes from the request's pincode (demo table only, no external
+    # geocoder). Resolved before the model call so a bad pincode costs nothing.
+    try:
+        org_location = resolve_pincode(stream.get("pincode"))
+    except LocationError as exc:
+        return _fail_with_user_message(storage, stream_id, exc)
+
     storage.update_stream(stream_id, status="CHARACTERIZING")
     timings: dict[str, int] = {}
 
@@ -55,8 +69,6 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
         )
         timings["characterize_ms"] = int((time.monotonic() - t0) * 1000)
 
-        org = _ORGS.get(stream["org_id"])
-        org_location = org["location"] if org else {"lat": None, "lng": None}
         slider_w = stream.get("slider_w", 0.5)
 
         t1 = time.monotonic()
@@ -108,6 +120,9 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
         )
         logger.info(json.dumps({"step": "pipeline", "stream_id": stream_id, "status": status, **timings}))
         return storage.get_stream(stream_id)
+
+    except LocationError as exc:
+        return _fail_with_user_message(storage, stream_id, exc)
 
     except Exception as exc:
         storage.update_stream(stream_id, status="FAILED", error=str(exc))

@@ -82,15 +82,23 @@ class ProcessorCandidate(BaseModel):
     processor_id: str
     name: str
     tier: str
+    pincode: str | None = None
     distance_km: float
-    price_per_kg_inr: float
-    recovery_rate: float          # seeded assumption, labelled as such
+    price_per_kg_inr: float | None
+    price_basis: str | None       # "sourced" | "illustrative_assumption" | None (no price)
+    recovery_rate: float          # illustrative assumption, labelled as such
+    recovery_rate_basis: str = "illustrative_assumption"
+    net_rupees_per_kg: float
+    net_co2e_per_kg: float
     net_rupees: float
     net_co2e_kg: float
-    normalized_money: float       # 0 to 1
-    normalized_carbon: float      # 0 to 1
-    score: float                  # (1-w)*normalized_money + w*normalized_carbon
-    authorized: bool
+    money_score: float            # net_rupees_per_kg / best across all eligible processors (raw, 0 to 1)
+    carbon_score: float           # net_co2e_per_kg / best across all eligible processors (raw, 0 to 1)
+    money_score_used: float       # equals money_score unless the money spread was under 2%
+    carbon_score_used: float
+    score: float                  # (1-w)*money_score_used + w*carbon_score_used
+    authorization_gate_passed: bool   # accepts the material and clears the hazardous-item gate; NOT a statement that it is authorized
+    authorization_label: str          # "demo only, authorization not checked" when no authorization_ref
     review_required: bool
 
 
@@ -100,6 +108,10 @@ class RoutingDecision(BaseModel):
     unscored_candidates: list[dict] = []  # eligible but missing price/CO2e data or not authorization-checked
     picked_processor_id: str | None
     explanation: str              # one-line trade-off explanation
+    max_distance_km: float = 500.0
+    tie_break_rule: str = ""
+    reference_scale: dict = {}
+    measures_treated_equal: dict = {}
     rule_name: str
     review_required: bool
     reuse_recommended_processor_id: str | None = None  # feature 6: reuse-before-recycle override

@@ -11,12 +11,28 @@ from pathlib import Path
 from app.models import CounterfactualReceipt, Item, PriceRange, ReceiptCase
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
-_CO2_FACTORS: dict[str, dict] = {
-    row["material"]: row for row in json.loads((_DATA_DIR / "co2.json").read_text())
-}
+_EMISSION_DATA: dict = json.loads((_DATA_DIR / "emission_factors.json").read_text())
+_EMISSION_FACTORS: dict[str, dict] = {row["material"]: row for row in _EMISSION_DATA["factors"]}
+_EMISSION_PROXY_LABEL: str = _EMISSION_DATA["_meta"]["label"]
 _PRICES: list[dict] = json.loads((_DATA_DIR / "prices.json").read_text())
 
 _TIERS = ("reuse", "refurbish", "recycle", "recovery", "disposal")
+
+
+def get_avoided_factor(material: str) -> dict | None:
+    """Normalized view of one material's emission_factors.json row: avoided_kg_co2e_per_kg,
+    source, label, verified. None if no row or no avoided_kg_per_kg value exists.
+    Shared by matching.py so both tools read the exact same source of truth.
+    """
+    row = _EMISSION_FACTORS.get(material)
+    if row is None or row.get("avoided_kg_per_kg") is None:
+        return None
+    return {
+        "avoided_kg_co2e_per_kg": row["avoided_kg_per_kg"],
+        "source": row["source"],
+        "label": _EMISSION_PROXY_LABEL if row.get("verified") else "unverified estimate, not a WARM citation",
+        "verified": bool(row.get("verified")),
+    }
 
 
 def _price_range_for(material: str) -> PriceRange | None:
@@ -39,8 +55,7 @@ def counterfactual_receipt(item: Item, routing_result: dict) -> CounterfactualRe
     routing_result is find_processors()'s return dict.
     """
     quantity_kg = item.quantity_kg or 0.0
-    co2_row = _CO2_FACTORS.get(item.material)
-    factor_available = co2_row is not None and co2_row.get("avoided_kg_co2e_per_kg") is not None
+    factor = get_avoided_factor(item.material)
 
     picked_id = routing_result.get("picked_processor_id")
     picked = next(
@@ -71,9 +86,9 @@ def counterfactual_receipt(item: Item, routing_result: dict) -> CounterfactualRe
         diff_rupees=diff_rupees,
         diff_co2e_kg=diff_co2e,
         price_range=_price_range_for(item.material),
-        emission_factor_source=co2_row["source"] if co2_row else None,
-        emission_factor_label=co2_row["label"] if co2_row else None,
-        emission_factor_available=factor_available,
+        emission_factor_source=factor["source"] if factor else None,
+        emission_factor_label=factor["label"] if factor else None,
+        emission_factor_available=factor is not None,
     )
 
 
@@ -83,7 +98,6 @@ def dashboard_summary(routed_items: list[tuple[Item, dict]]) -> dict:
     """
     kg_by_tier = {tier: 0.0 for tier in _TIERS}
     co2e_avoided_kg = 0.0
-    any_unverified_rule = False
     any_review = False
 
     for item, routing_result in routed_items:
