@@ -1,0 +1,171 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap");
+
+/* Adapted from Complete LoopBack Dashboard Design. Namespaced to preserve existing pages. */
+.lb-shell {
+  --forest: #344b3a; --green: #526b50; --sage: #84947a; --pale-sage: #e5eadf;
+  --cream: #f6f3eb; --ivory: #fffefa; --brown: #795c43; --clay: #a88b70;
+  --beige: #d9cbb8; --text: #282d28; --muted: #6f7065; --border: #e4e0d6;
+  --sidebar-width: 252px;
+  display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+  min-height: 100vh; color: var(--text); background: var(--cream);
+  font-family: "Inter", sans-serif; font-synthesis: none;
+}
+.lb-shell.lb-collapsed { --sidebar-width: 76px; }
+.lb-shell button:focus-visible, .lb-shell a:focus-visible, .lb-shell input:focus-visible {
+  outline: 3px solid var(--sage); outline-offset: 3px;
+}
+.lb-sidebar { position: sticky; top: 0; height: 100vh; background: #f1eee5; border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 30; overflow: hidden; }
+.lb-brand { min-height: 82px; padding: 20px 18px; display: flex; align-items: center; gap: 11px; border-bottom: 1px solid var(--border); text-decoration: none; color: var(--text); }
+.lb-brand-mark { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center; border-radius: 50%; color: var(--ivory); background: var(--forest); }
+.lb-brand div { min-width: 0; display: flex; flex-direction: column; }
+.lb-brand strong { font-size: 17px; letter-spacing: -.025em; }
+.lb-brand div span { margin-top: 2px; font-size: 9px; color: var(--muted); white-space: nowrap; text-transform: uppercase; letter-spacing: .06em; }
+.lb-sidebar-nav { flex: 1; padding: 16px 12px; overflow-y: auto; }
+.lb-nav-group { margin-bottom: 20px; }
+.lb-nav-group > p { margin: 0 10px 8px; color: var(--muted); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .11em; }
+.lb-nav-link { position: relative; min-height: 42px; padding: 0 11px; margin: 2px 0; border-radius: 9px; display: flex; align-items: center; gap: 11px; color: #5f625c; font-size: 13px; font-weight: 500; text-decoration: none; }
+.lb-nav-link svg { flex-shrink: 0; }
+.lb-nav-link:hover { background: rgba(229,234,223,.6); color: var(--forest); }
+.lb-nav-link.lb-active { background: var(--pale-sage); color: var(--forest); }
+.lb-nav-link.lb-active::before { content: ""; position: absolute; width: 3px; height: 20px; left: -12px; border-radius: 0 3px 3px 0; background: var(--green); }
+.lb-sidebar-bottom { padding: 13px 12px 15px; border-top: 1px solid var(--border); }
+.lb-system-status { margin: 0 8px 10px; display: flex; align-items: center; gap: 10px; }
+.lb-system-status > span { width: 7px; height: 7px; border-radius: 50%; background: #b18b45; box-shadow: 0 0 0 4px rgba(177,139,69,.12); }
+.lb-system-status div, .lb-account-row div { display: flex; flex-direction: column; }
+.lb-system-status strong, .lb-account-row strong { font-size: 11px; font-weight: 500; }
+.lb-system-status p { margin: 1px 0 0; font-size: 10px; color: var(--muted); }
+.lb-account-row { display: flex; align-items: center; gap: 10px; padding: 13px 8px 9px; margin-top: 5px; border-top: 1px solid var(--border); }
+.lb-account-row div span { color: var(--muted); font-size: 10px; }
+.lb-avatar { width: 31px; height: 31px; flex-shrink: 0; border-radius: 50%; display: grid; place-items: center; background: var(--beige); color: #624931; font-size: 10px; font-weight: 600; }
+.lb-collapse-button { width: 100%; height: 36px; border: 0; border-radius: 8px; background: transparent; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; color: var(--muted); font-size: 11px; }
+.lb-collapse-button:hover { background: var(--pale-sage); color: var(--forest); }
+.lb-collapse-button svg { transform: rotate(180deg); }
+.lb-collapsed .lb-expanded { display: none; }
+.lb-collapsed .lb-nav-link { justify-content: center; padding: 0; }
+.lb-collapsed .lb-collapse-button svg { transform: none; }
+.lb-main { min-width: 0; display: flex; flex-direction: column; }
+.lb-topbar { height: 62px; padding: 0 42px; border-bottom: 1px solid var(--border); background: var(--cream); display: flex; align-items: center; justify-content: space-between; gap: 20px; position: sticky; top: 0; z-index: 20; }
+.lb-breadcrumbs { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; min-width: 0; }
+.lb-breadcrumbs > span { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.lb-breadcrumbs > span:last-child { color: var(--text); font-weight: 500; }
+.lb-breadcrumbs span[aria-current] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lb-topbar-actions { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+.lb-global-search { width: 215px; padding: 0 10px; border: 1px solid var(--border); background: var(--ivory); color: var(--muted); display: flex; align-items: center; gap: 8px; border-radius: 8px; }
+.lb-global-search input { width: 100%; height: 34px; border: 0; background: transparent; color: var(--text); font-size: 11px; cursor: not-allowed; }
+.lb-icon-button, .lb-mobile-menu { width: 34px; height: 34px; border: 1px solid var(--border); border-radius: 8px; background: var(--ivory); display: grid; place-items: center; }
+.lb-icon-button:disabled { cursor: not-allowed; color: var(--muted); }
+.lb-mobile-menu { display: none; cursor: pointer; }
+.lb-content { width: 100%; max-width: 1580px; margin: 0 auto; padding: 38px 42px 56px; flex: 1; min-width: 0; }
+.lb-footer { padding: 15px 42px; border-top: 1px solid var(--border); color: var(--muted); font-size: 10px; }
+.lb-footer p { margin: 0; line-height: 1.6; }
+.lb-passport-page h1 { margin: 0 0 8px; font-size: clamp(28px, 3vw, 34px); line-height: 1.15; font-weight: 600; letter-spacing: -.035em; }
+.lb-passport-page h2 { line-height: 1.3; font-weight: 600; letter-spacing: -.015em; }
+.lb-passport-page h3 { margin: 0 0 7px; font-size: 15px; font-weight: 600; }
+.lb-page-header { min-height: 90px; margin-bottom: 28px; display: flex; justify-content: space-between; align-items: flex-end; gap: 25px; }
+.lb-page-header > div:first-child { max-width: 720px; }
+.lb-page-header p:not(.lb-eyebrow) { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.lb-page-actions { display: flex; align-items: center; flex-shrink: 0; }
+.lb-eyebrow { margin: 0 0 8px; color: var(--brown); font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .1em; }
+.lb-button { min-height: 38px; padding: 0 15px; border: 1px solid transparent; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 500; text-decoration: none; }
+.lb-button:disabled { cursor: not-allowed; color: #5d6258; background: #e5e8e0; border-color: var(--border); }
+.lb-button-primary { color: var(--ivory); background: var(--forest); }
+.lb-button-primary:hover:not(:disabled) { background: #293d2f; }
+.lb-button-secondary { color: var(--forest); background: var(--ivory); border-color: var(--border); }
+.lb-button-secondary:hover { border-color: var(--sage); }
+.lb-inline-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.lb-demo-notice { display: flex; gap: 10px; align-items: center; padding: 12px 15px; margin-bottom: 18px; border: 1px solid #d3dbc9; border-radius: 9px; background: var(--pale-sage); color: var(--forest); }
+.lb-demo-notice svg { flex-shrink: 0; }
+.lb-demo-notice p { margin: 0; font-size: 12px; line-height: 1.6; }
+.lb-metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+.lb-metric-card, .lb-section-card { border: 1px solid var(--border); border-radius: 12px; background: var(--ivory); }
+.lb-metric-card { min-height: 135px; padding: 20px; }
+.lb-metric-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; color: var(--muted); font-size: 11px; }
+.lb-metric-top svg { color: var(--green); }
+.lb-metric-card > strong { display: block; margin: 17px 0 5px; font-size: 22px; line-height: 1.2; font-weight: 500; letter-spacing: -.035em; overflow-wrap: anywhere; }
+.lb-metric-card p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.lb-passport-card { margin-bottom: 18px; border: 1px solid var(--beige); border-radius: 13px; overflow: hidden; background: var(--ivory); box-shadow: 0 12px 30px rgba(52,75,58,.05); }
+.lb-passport-banner { min-height: 145px; padding: 27px 32px; display: flex; align-items: center; justify-content: space-between; color: white; background: var(--forest); }
+.lb-passport-kicker { display: flex; align-items: center; gap: 7px; margin-bottom: 12px; color: var(--beige); font-size: 10px; text-transform: uppercase; letter-spacing: .11em; }
+.lb-passport-banner h2 { margin: 0 0 6px; font-size: 28px; font-weight: 500; }
+.lb-passport-banner p { margin: 0; color: #d9dfd7; font-family: ui-monospace, monospace; font-size: 11px; line-height: 1.6; }
+.lb-passport-banner > svg { color: var(--beige); flex-shrink: 0; }
+.lb-passport-body { padding: 28px; display: grid; grid-template-columns: minmax(260px, .9fr) 1.1fr; gap: 28px; }
+.lb-passport-photo { min-height: 265px; border-radius: 10px; overflow: hidden; background: #efede6; }
+.lb-passport-photo > div { height: 100%; min-height: 265px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; color: var(--muted); font-size: 11px; text-align: center; padding: 20px; }
+.lb-passport-photo strong { font-weight: 500; }
+.lb-passport-facts { display: flex; flex-direction: column; min-width: 0; }
+.lb-passport-facts .lb-button { margin-top: 16px; align-self: flex-start; }
+.lb-copy-message { min-height: 18px; margin: 8px 0 0; font-size: 11px; color: var(--green); }
+.lb-passport-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+.lb-section-card { padding: 22px; margin-bottom: 18px; min-width: 0; }
+.lb-section-header { min-height: 24px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.lb-section-header h2 { margin: 0; font-size: 15px; }
+.lb-section-header > svg { color: var(--green); }
+.lb-badge { width: fit-content; padding: 4px 8px; border-radius: 999px; display: inline-flex; align-items: center; color: #5f6157; background: #eeece5; font-size: 10px; line-height: 1.5; font-weight: 600; white-space: nowrap; }
+.lb-badge-demo { color: var(--forest); background: var(--pale-sage); }
+.lb-badge-pending { color: #765c26; background: #f3ead4; }
+.lb-detail-list { margin: 0; }
+.lb-detail-list > div { min-height: 52px; padding: 11px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.lb-detail-list > div:last-child { border: 0; }
+.lb-detail-list dt { color: var(--muted); font-size: 11px; flex: 0 0 42%; }
+.lb-detail-list dd { margin: 0; font-size: 11px; font-weight: 500; text-align: right; overflow-wrap: anywhere; }
+.lb-empty-state { min-height: 155px; padding: 18px 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.lb-empty-state p { max-width: 440px; margin: 0; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.lb-empty-icon, .lb-destination-icon { width: 43px; height: 43px; margin-bottom: 13px; border-radius: 50%; background: var(--pale-sage); color: var(--green); display: grid; place-items: center; }
+.lb-note { margin: 0 0 17px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+.lb-verification-card { background: #f8faf5; border-color: #cdd7c7; }
+.lb-verification-card .lb-button { margin-top: 20px; }
+.lb-action-note { margin: 8px 0 0; font-size: 11px; }
+.lb-timeline { list-style: none; padding: 0; margin: 20px 0 0; }
+.lb-timeline-item { position: relative; min-height: 78px; padding: 0 0 20px 34px; }
+.lb-timeline-item:not(:last-child)::before { content: ""; position: absolute; left: 11px; top: 23px; width: 1px; height: calc(100% - 12px); background: var(--border); }
+.lb-timeline-marker { position: absolute; left: 0; top: 0; width: 23px; height: 23px; border-radius: 50%; background: #eeece5; color: var(--muted); display: grid; place-items: center; }
+.lb-timeline-example .lb-timeline-marker { background: var(--green); color: white; }
+.lb-timeline-heading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.lb-timeline-heading strong { font-size: 12px; font-weight: 600; }
+.lb-timeline-item p { margin: 5px 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+.lb-timeline-item time { color: var(--brown); font-size: 10px; }
+@media (max-width: 1100px) {
+  .lb-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lb-page-header { align-items: flex-start; flex-direction: column; }
+  .lb-passport-body { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+}
+@media (max-width: 820px) {
+  .lb-shell, .lb-shell.lb-collapsed { display: block; }
+  .lb-sidebar { position: fixed; width: 252px; left: -270px; transition: left 180ms ease; visibility: hidden; }
+  .lb-sidebar.lb-sidebar-open { left: 0; visibility: visible; }
+  .lb-sidebar .lb-expanded { display: flex; }
+  .lb-sidebar .lb-nav-link { justify-content: flex-start; padding: 0 11px; }
+  .lb-sidebar .lb-collapse-button { display: none; }
+  .lb-scrim { position: fixed; z-index: 25; inset: 0; border: 0; background: rgba(40,45,40,.35); }
+  .lb-topbar { padding: 0 22px; gap: 12px; }
+  .lb-mobile-menu { display: grid; flex-shrink: 0; }
+  .lb-breadcrumbs { flex: 1; }
+  .lb-global-search { display: none; }
+  .lb-content { padding: 28px 22px 45px; }
+  .lb-footer { padding: 15px 22px; }
+  .lb-passport-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+@media (max-width: 620px) {
+  .lb-content { padding: 22px 15px 38px; }
+  .lb-topbar { padding: 0 15px; }
+  .lb-breadcrumbs > span:not(:last-child), .lb-breadcrumbs > a { display: none; }
+  .lb-page-header { margin-bottom: 22px; }
+  .lb-page-actions { width: 100%; }
+  .lb-metric-grid { gap: 9px; }
+  .lb-metric-card { min-height: 130px; padding: 16px; }
+  .lb-metric-card > strong { font-size: 19px; }
+  .lb-section-card { padding: 16px; }
+  .lb-passport-banner { padding: 24px 20px; }
+  .lb-passport-banner h2 { font-size: 22px; }
+  .lb-passport-banner > svg { display: none; }
+  .lb-passport-body { padding: 17px; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .lb-breadcrumbs { font-size: 10px; }
+}
+@media print {
+  .lb-sidebar, .lb-topbar, .lb-footer, .lb-page-actions, .lb-passport-facts .lb-button { display: none !important; }
+  .lb-shell { display: block; background: white; }
+  .lb-content { padding: 0; }
+  .lb-passport-card, .lb-section-card, .lb-metric-card { box-shadow: none; break-inside: avoid; }
+}
+@media (prefers-reduced-motion: reduce) { .lb-sidebar { transition: none; } }

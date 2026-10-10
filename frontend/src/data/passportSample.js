@@ -1,0 +1,25 @@
+// Part 1 UI fixture only. No backend record, AI response, or verified ledger.
+export const passportSample = {
+  id: "LB-SAMPLE-001",
+  category: "Steel scrap",
+  categoryBasis: "Sample submitter label",
+  quantity: "120",
+  unit: "kg",
+  origin: "Campus Workshop",
+  originDetail: "Patiala, Punjab · sample location",
+  createdAt: "2026-10-11T09:30:00+05:30",
+  createdLabel: "11 Oct 2026, 09:30 IST",
+  createdDateLabel: "11 Oct 2026",
+  createdTimeLabel: "09:30 IST",
+  materialDetails: "Not available — awaiting characterization",
+  characterizedType: "Not available",
+  characterizationStatus: "Pending — no AI response",
+  processor: { name: "Not assigned", location: "Not available", matching: "Awaiting characterization", status: "Routing pending" },
+  verification: { status: "Not performed", chainId: null, hash: null },
+  journey: [
+    { label: "Waste uploaded", state: "example", description: "Example submission only; no backend upload was created.", timestamp: "Sample · 11 Oct 2026, 09:30 IST", dateTime: "2026-10-11T09:30:00+05:30" },
+    { label: "Waste characterization", state: "pending", description: "Waste type and material details will appear after a characterization response." },
+    { label: "Processor matching / routing", state: "pending", description: "A destination has not been assigned or accepted." },
+    { label: "Processing / final outcome", state: "pending", description: "No collection or processing outcome has been recorded." },
+  ],
+};
