@@ -90,11 +90,12 @@ def test_lookup_never_touches_the_network(monkeypatch):
 
 def test_pipeline_uses_the_pincode_not_the_org(monkeypatch):
     seen = {}
-    real = pipeline.find_processors
+    from app import agent as agent_mod
+    real = agent_mod.find_processors
     def spy(item, loc, **k):
         seen["loc"] = loc
         return real(item, loc, **k)
-    monkeypatch.setattr(pipeline, "find_processors", spy)
+    monkeypatch.setattr(agent_mod, "find_processors", spy)
     monkeypatch.setattr(pipeline, "characterize_waste", lambda *a, **k: Characterization(items=[make_item()], overall_confidence=0.9))
     with tempfile.TemporaryDirectory() as tmp:
         st = LocalStorage(db_path=Path(tmp) / "t.db")

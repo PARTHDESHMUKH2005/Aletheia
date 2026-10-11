@@ -21,15 +21,17 @@ def _load_dotenv_once() -> None:
     """Loads backend/.env into os.environ (without overwriting real env vars)
     on first import, independently of the process's working directory.
     """
-    env_path = Path(__file__).resolve().parent.parent / ".env"
-    if not env_path.exists():
-        return
-    for line in env_path.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
+    backend_dir = Path(__file__).resolve().parent.parent
+    # backend/.env wins; the repo-root .env is the fallback (setdefault keeps the first value).
+    for env_path in (backend_dir / ".env", backend_dir.parent / ".env"):
+        if not env_path.exists():
             continue
-        key, _, value = line.partition("=")
-        os.environ.setdefault(key.strip(), value.strip())
+        for line in env_path.read_text().splitlines():
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            os.environ.setdefault(key.strip(), value.strip())
 
 
 _load_dotenv_once()
@@ -46,6 +48,7 @@ class Settings:
     gemini_api_key: str | None
     qwen_api_key: str | None
     qwen_base_url: str
+    use_agent: bool           # run the Strands orchestrator before the deterministic completion pass
 
     @property
     def dev_tools_enabled(self) -> bool:
@@ -83,6 +86,7 @@ def get_settings() -> Settings:
         gemini_api_key=os.environ.get("GEMINI_API_KEY"),
         qwen_api_key=os.environ.get("QWEN_API_KEY"),
         # UNVERIFIED default: DashScope's OpenAI-compatible endpoint. Confirm before use.
+        use_agent=os.environ.get("USE_AGENT", "true").lower() in ("1", "true", "yes"),
         qwen_base_url=os.environ.get("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
     )
 
@@ -152,3 +156,11 @@ def get_model(tier: str):
         model_id=model_id,
         params=gemini_params,
     )
+
+
+def get_retry_strategy():
+    """Fail fast on throttling: 2 attempts, ~1s apart, instead of Strands' default of
+    6 attempts with up to 240s backoff (about 2 minutes per call on a 429).
+    """
+    from strands.event_loop._retry import ModelRetryStrategy
+    return ModelRetryStrategy(max_attempts=2, initial_delay=1, max_delay=2)

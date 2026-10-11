@@ -5,10 +5,12 @@ Local worker is BackgroundTasks; no AWS code here.
 """
 import json
 import os
+import re
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -87,6 +89,18 @@ async def put_local_upload(key: str, request: Request) -> dict:
     return {"ok": True, "key": key}
 
 
+@app.get("/local-uploads/{key}")
+def get_local_upload(key: str) -> Response:
+    """Serves an uploaded photo so the passport can show it (local dev stand-in for an S3 URL)."""
+    if not re.fullmatch(r"[A-Za-z0-9._-]+", key):
+        raise HTTPException(status_code=404, detail="no such upload")
+    try:
+        data = _storage().read_upload(key)
+    except (FileNotFoundError, KeyError):
+        raise HTTPException(status_code=404, detail="no such upload")
+    return Response(content=data, media_type="image/jpeg")
+
+
 @app.post("/streams", status_code=202)
 def create_stream(body: StreamCreateRequest, background_tasks: BackgroundTasks) -> StreamCreateResponse:
     if body.org_id not in _ORGS:
@@ -106,6 +120,7 @@ def create_stream(body: StreamCreateRequest, background_tasks: BackgroundTasks) 
         "pincode": body.pincode,
         "slider_w": 0.5,
         "status": "SUBMITTED",
+        "created_at": datetime.now(timezone.utc).isoformat(),
     })
     # No storage object is passed into the background task: a SQLite connection
     # created in this request's thread shouldn't be reused from the task's thread.
@@ -121,6 +136,11 @@ def get_stream(stream_id: str) -> dict:
     stream = dict(stream)
     stream["stream_id"] = stream_id
     stream["ledger"] = storage.get_ledger_chain(stream_id)
+    try:
+        stream["pickup_location"] = resolve_pincode(stream.get("pincode"))
+    except LocationError:
+        stream["pickup_location"] = None
+    stream["org_name"] = _ORGS.get(stream.get("org_id"), {}).get("name")
     return stream
 
 

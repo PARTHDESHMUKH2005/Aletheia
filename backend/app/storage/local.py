@@ -42,7 +42,7 @@ class LocalStorage(Storage):
     def __init__(self, db_path: Path = _DB_PATH, uploads_dir: Path | None = None):
         self.db_path = db_path
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(self.db_path)
+        self._conn = sqlite3.connect(self.db_path, check_same_thread=False)  # agent tools run on worker threads; agent.py serialises them
         self._conn.executescript(_SCHEMA)
         self._conn.commit()
         self.uploads_dir = uploads_dir or (self.db_path.parent / "uploads")

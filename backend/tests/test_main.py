@@ -203,3 +203,19 @@ def test_dev_tamper_endpoint_404_for_missing_link():
     stream_id = create_routed_stream()
     resp = client.post(f"/dev/tamper/{stream_id}", params={"link_no": 999})
     assert resp.status_code == 404
+
+
+def test_stream_exposes_pickup_location_and_photo_is_served(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+    from app import main
+    from app.storage.local import LocalStorage
+    st = LocalStorage(db_path=tmp_path / "t.db")
+    monkeypatch.setattr(main, "_storage", lambda: st)
+    st.save_upload("abc.jpg", b"jpegbytes")
+    st.create_stream("s9", {"org_id": "org_campus_workshop", "photo_keys": ["abc.jpg"], "pincode": "147001", "status": "ROUTED"})
+    c = TestClient(main.app)
+    body = c.get("/streams/s9").json()
+    assert body["pickup_location"]["pincode"] == "147001" and body["org_name"] == "Campus Workshop"
+    assert c.get("/local-uploads/abc.jpg").content == b"jpegbytes"
+    assert c.get("/local-uploads/missing.jpg").status_code == 404
+    assert c.get("/local-uploads/..%2Fsecret").status_code == 404

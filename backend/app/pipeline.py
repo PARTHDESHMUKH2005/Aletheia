@@ -6,13 +6,11 @@ import json
 import logging
 import time
 
-from app.models import Characterization
+from app.agent import RunContext, hand_off, route_item, routed_processor_id, run_characterize, run_orchestrator
+from app.config import get_settings
 from app.tools.assessment import assess_item
-from app.tools.characterize import PhotoBlock, characterize_waste
+from app.tools.characterize import characterize_waste
 from app.tools.geo import LocationError, resolve_pincode
-from app.tools.guardrails import out_of_scope_flag
-from app.tools.ledger import record_handoff
-from app.tools.matching import find_processors
 from app.tools.report import counterfactual_receipt
 
 logger = logging.getLogger("loopback.pipeline")
@@ -20,11 +18,6 @@ logger = logging.getLogger("loopback.pipeline")
 
 LOW_CONFIDENCE_THRESHOLD = 0.7
 HAZARDOUS_CONFIDENCE_THRESHOLD = 0.85
-
-
-def _guess_format(key: str) -> str:
-    ext = key.rsplit(".", 1)[-1].lower() if "." in key else "jpeg"
-    return "jpeg" if ext == "jpg" else ext
 
 
 def _fail_with_user_message(storage, stream_id: str, exc: LocationError) -> dict:
@@ -60,17 +53,22 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
     timings: dict[str, int] = {}
 
     try:
-        t0 = time.monotonic()
-        photos: list[PhotoBlock] = [
-            {"format": _guess_format(key), "bytes": storage.read_upload(key)}
-            for key in stream["photo_keys"]
-        ]
-        characterization = characterize_waste(
-            photos, note=stream.get("note", ""), quantity_kg=stream.get("quantity_kg"), storage=storage,
+        ctx = RunContext(
+            storage=storage, stream_id=stream_id, stream=stream, org_location=org_location,
+            slider_w=stream.get("slider_w", 0.5), characterize_fn=characterize_waste,
         )
-        timings["characterize_ms"] = int((time.monotonic() - t0) * 1000)
 
-        slider_w = stream.get("slider_w", 0.5)
+        # The orchestrator agent drives the tools; it is optional (USE_AGENT) and best-effort.
+        # Whatever it did or skipped, the loop below completes and re-checks every item in
+        # plain code, so the stored result never depends on the model behaving.
+        agent_run = None
+        if get_settings().use_agent:
+            t_agent = time.monotonic()
+            agent_run = run_orchestrator(ctx)
+            timings["agent_ms"] = int((time.monotonic() - t_agent) * 1000)
+
+        characterization = run_characterize(ctx)
+        timings["characterize_ms"] = ctx.characterize_ms
 
         t1 = time.monotonic()
         routings = []
@@ -79,31 +77,28 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
         needs_review = False
         refused = False
 
-        for item in characterization.items:
-            scope_flag = out_of_scope_flag(item)
-            if scope_flag:
+        for index, item in enumerate(characterization.items):
+            routing_result = route_item(ctx, index)
+            assessments.append(assess_item(item))
+
+            if routing_result.get("refused"):
                 refused = True
-                routings.append({"refused": True, "out_of_scope_category": scope_flag})
+                routings.append(routing_result)
                 receipts.append(None)
-                assessments.append(assess_item(item))
                 continue
 
             threshold = HAZARDOUS_CONFIDENCE_THRESHOLD if item.hazardous else LOW_CONFIDENCE_THRESHOLD
             if item.confidence < threshold:
                 needs_review = True
-
-            routing_result = find_processors(item, org_location, w=slider_w)
             if routing_result["review_required"]:
                 needs_review = True
 
-            receipt = counterfactual_receipt(item, routing_result)
             routings.append(routing_result)
-            receipts.append(receipt.model_dump())
-            assessments.append(assess_item(item))
+            receipts.append(counterfactual_receipt(item, routing_result).model_dump())
 
-            picked_id = routing_result.get("picked_processor_id") or routing_result.get("reuse_recommended_processor_id")
+            picked_id = routed_processor_id(routing_result)
             if picked_id is not None:
-                record_handoff(storage, stream_id, picked_id, "requested", item)
+                hand_off(ctx, index, picked_id)
 
         timings["routing_ms"] = int((time.monotonic() - t1) * 1000)
 
@@ -114,6 +109,9 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
         else:
             status = "ROUTED"
 
+        extra = {}
+        if agent_run is not None:
+            extra["agent"] = {k: v for k, v in agent_run.items() if k in ("summary", "error", "tool_calls", "usage")}
         storage.update_stream(
             stream_id,
             status=status,
@@ -122,6 +120,7 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
             receipts=receipts,
             assessments=assessments,
             timings=timings,
+            **extra,
         )
         logger.info(json.dumps({"step": "pipeline", "stream_id": stream_id, "status": status, **timings}))
         return storage.get_stream(stream_id)

@@ -7,7 +7,7 @@ import logging
 import time
 from typing import TypedDict
 
-from app.config import get_model, get_settings
+from app.config import get_model, get_retry_strategy, get_settings
 from strands.types.exceptions import MaxTokensReachedException
 
 from app.models import Characterization
@@ -53,7 +53,7 @@ def _run_model(tier: str, prompt: list[dict]) -> Characterization:
     model_id = {"fast": settings.model_fast, "strong": settings.model_strong}[tier]
 
     start = time.monotonic()
-    agent = Agent(model=get_model(tier), tools=[])
+    agent = Agent(model=get_model(tier), tools=[], retry_strategy=get_retry_strategy())
     result = agent(prompt, structured_output_model=Characterization)
     elapsed_ms = int((time.monotonic() - start) * 1000)
 
