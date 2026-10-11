@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api.js";
 import { rememberStream } from "../lib/recent.js";
+import ContaminationMeter from "../components/ContaminationMeter.jsx";
 
 const STATUS_STYLE = {
   ROUTED: "bg-green-100 text-green-800",
@@ -29,6 +30,7 @@ export default function Result() {
   const [ewasteError, setEwasteError] = useState(null);
   const [handoffMsg, setHandoffMsg] = useState(null);
   const [route, setRoute] = useState(null);
+  const [processors, setProcessors] = useState([]);
   const [routeError, setRouteError] = useState(null);
   const [draft, setDraft] = useState(null);
   const [wipeBusy, setWipeBusy] = useState(false);
@@ -40,6 +42,7 @@ export default function Result() {
   const pollRef = useRef(null);
 
   useEffect(() => { if (streamId) rememberStream(streamId); }, [streamId]);
+  useEffect(() => { api.listProcessors().then(setProcessors).catch(() => {}); }, []);
 
   async function handleWipe() {
     if (wipePendingRef.current) return;
@@ -201,6 +204,31 @@ export default function Result() {
         </div>
       )}
 
+      {item && route?.routing && !route.routing.refused && (() => {
+        const pid = route.routing.picked_processor_id || route.routing.reuse_recommended_processor_id;
+        const proc = processors.find((p) => p.id === pid);
+        const cand = route.routing.candidates?.find((c) => c.processor_id === pid);
+        if (!proc) return null;
+        const accepts = proc.accepted_materials?.includes(item.material);
+        return (
+          <div className="border-2 border-green-500 rounded-lg p-4 bg-green-50 text-sm space-y-1" data-testid="destination-card">
+            <div className="text-xs uppercase tracking-wide text-green-800 font-semibold">Where this waste goes</div>
+            <div className="text-base font-semibold">
+              {item.material} <span aria-hidden="true">&rarr;</span> {proc.name}
+              <span className="text-[10px] bg-white text-gray-500 px-1.5 py-0.5 rounded-full ml-2 align-middle">seeded demo entity</span>
+            </div>
+            <div>{proc.location?.address || "Address not recorded"}{proc.pincode ? ` (${proc.pincode})` : ""}</div>
+            {cand && <div>Distance from pickup: <strong>{cand.distance_km} km</strong> (straight line)</div>}
+            <div>
+              Why it is allowed: this processor {accepts ? <strong className="text-green-800">accepts {item.material}</strong> : <strong className="text-red-700">does not list {item.material} as accepted</strong>}
+              {" "}(accepts: {proc.accepted_materials?.join(", ")}) &middot; tier: {proc.tier}
+            </div>
+            {route.routing.rule_name && <div>Governing rule: {route.routing.rule_name}</div>}
+            <div className="text-xs text-gray-600">{proc.authorization_label || "demo only, authorization not checked"}</div>
+          </div>
+        );
+      })()}
+
       {route?.assessment && (
         <div className="border rounded-lg p-4 bg-white text-sm space-y-1">
           <div className="font-medium">Quality check</div>
@@ -208,9 +236,7 @@ export default function Result() {
             Confidence {route.assessment.confidence} ({route.assessment.confidence_band}) &middot; purity: {route.assessment.purity}
           </div>
           <div className="text-xs text-gray-500">{route.assessment.confidence_basis}. {route.assessment.purity_note}</div>
-          {route.assessment.contaminants.length > 0 && (
-            <div className="text-amber-700">Contamination: {route.assessment.contaminants.join("; ")}</div>
-          )}
+          {item && <div className="pt-1"><div className="text-xs text-gray-600 mb-1">Contamination</div><ContaminationMeter item={item} /></div>}
           {route.assessment.price_is_provisional && (
             <div className="text-xs text-amber-700">Price is provisional: {route.assessment.inspection_reasons.join("; ")}.</div>
           )}

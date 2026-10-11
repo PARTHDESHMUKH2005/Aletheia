@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api, API_URL } from "../api.js";
 import Icon from "../components/Icon.jsx";
 import PassportMap from "../components/PassportMap.jsx";
+import ContaminationMeter from "../components/ContaminationMeter.jsx";
 import { DetailList, PageHeader, SectionCard, StatusBadge, Timeline } from "../components/PassportUI.jsx";
 import { recentStreams } from "../lib/recent.js";
 import PassportSample from "./PassportSample.jsx";
@@ -170,10 +171,10 @@ export default function Passport() {
               [items.length > 1 ? `Item ${i + 1}` : "Material", label(it.material)],
               ["Quantity", `${it.quantity_kg ?? "?"} kg (${it.quantity_basis})`],
               ["Purity", label(it.purity)],
+              ["Contamination", <ContaminationMeter key="cm" item={it} />],
               ["Hazardous", it.hazardous ? "Yes — routed to authorized handlers only" : "No"],
               ["Confidence", `${Math.round(it.confidence * 100)}%`],
               ["Composition", it.composition_note],
-              ["Contaminants", it.contaminants?.length ? it.contaminants.join(", ") : "None visible"],
             ]} />
             <p className="lb-note">{it.reasoning}</p>
           </div>)}
