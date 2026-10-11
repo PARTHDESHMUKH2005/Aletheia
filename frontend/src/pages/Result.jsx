@@ -29,6 +29,8 @@ export default function Result() {
   const canReview = principal?.role === "reviewer" || principal?.role === "admin";
   const [stream, setStream] = useState(null);
   const [error, setError] = useState(null);
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportError, setReportError] = useState(null);
   const [w, setW] = useState(0.5);
   const [ev, setEv] = useState(0);
   const [itemIndex, setItemIndex] = useState(0);
@@ -51,6 +53,26 @@ export default function Result() {
   const wipePendingRef = useRef(false);
   const draftPendingRef = useRef(false);
   const pollRef = useRef(null);
+
+  async function downloadReport() {
+    setReportBusy(true);
+    setReportError(null);
+    try {
+      const blob = await api.getReport(streamId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `loopback-${streamId.replace(/[^A-Za-z0-9_-]/g, "_")}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setReportError(err.message);
+    } finally {
+      setReportBusy(false);
+    }
+  }
 
   useEffect(() => { if (streamId) rememberStream(streamId); }, [streamId]);
   useEffect(() => { api.listProcessors().then(setProcessors).catch(() => {}); }, []);
@@ -216,6 +238,15 @@ export default function Result() {
         <h1 className="text-lg font-semibold">Decision</h1>
         <div className="mt-1"><StatusBadge status={stream.status} /></div>
         {stream.error && <div className="text-sm text-red-600 mt-2">{stream.error}</div>}
+        <button
+          className="mt-3 rounded-md border px-3 py-2 text-sm text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+          onClick={downloadReport}
+          disabled={reportBusy}
+          aria-busy={reportBusy}
+        >
+          {reportBusy ? "Preparing PDF..." : "Download PDF report"}
+        </button>
+        {reportError && <div role="alert" className="mt-2 text-sm text-red-600">{reportError}</div>}
       </div>
 
       {stream.characterization?.items?.length > 1 && <label className="block text-sm">Item
