@@ -213,7 +213,7 @@ export default function Passport() {
             <p className="lb-note">{routing?.refused ? `Category: ${routing.out_of_scope_category}. Needs human review.` : "No processor has been matched yet."}</p>
           </>}
           {stream.status === "NEEDS_REVIEW" && <p className="lb-note">Flagged for human review — see the <Link to="/review">review queue</Link>.</p>}
-          <PassportMap pickup={stream.pickup_location} picked={picked} others={others} />
+          <PassportMap pickup={stream.pickup_location} picked={picked} others={others} candidates={routing?.candidates} />
         </SectionCard>
       </div>
 
