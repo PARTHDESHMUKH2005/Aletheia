@@ -35,6 +35,7 @@ def lookup_rules(material: str, hazardous: bool | None = None) -> dict:
         "regulated": row.get("regulated", False),
         "handler_requirement": row["handler_requirement"],
         "paperwork": row["paperwork"],
+        "key_requirements": row.get("key_requirements", []),
         "review_required": row["review_required"],
         "basis": row["basis"],
         "verified": _is_verified(row["basis"]),

@@ -5,8 +5,8 @@ export default function ComplianceCard({ routing, processor }) {
   const c = routing.compliance || (routing.rule_name ? { rule_name: routing.rule_name, paperwork: [] } : null);
   if (!c) return null;
   const rows = [
-    ["Governing rule", c.rule_name + (c.section_ref ? ` (${c.section_ref})` : "")],
-    ["Rule section", c.section_ref || "Not recorded: check the official text"],
+    ["Governing rule", c.rule_name],
+    ["Notification / section", c.section_ref || "Not recorded: check the official text"],
     c.handler_requirement && ["Who may handle it", c.handler_requirement],
     ["Hazardous", c.hazardous ? "Yes: authorized handlers only" : "No"],
     c.regulated != null && ["Specifically regulated", c.regulated ? "Yes" : "No specific rule for this material"],
@@ -25,11 +25,20 @@ export default function ComplianceCard({ routing, processor }) {
         )}
         {c.verified === true && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-green-800">Verified against official text</span>}
       </div>
+      <div className="text-xs rounded-md bg-amber-50 text-amber-800 px-2 py-1 mb-2">
+        Demo data: rule summaries are drawn from our RULES.md reference, not legal advice. Confirm with the official gazette.
+      </div>
       <dl className="space-y-1">
         {rows.map(([k, v]) => (
           <div key={k} className="flex gap-2"><dt className="text-gray-500 w-44 shrink-0">{k}</dt><dd>{v}</dd></div>
         ))}
       </dl>
+      {c.key_requirements?.length > 0 && (
+        <div className="mt-3">
+          <div className="text-gray-500 mb-1">Key requirements for this material</div>
+          <ul className="list-disc pl-5 space-y-0.5">{c.key_requirements.map((r) => <li key={r}>{r}</li>)}</ul>
+        </div>
+      )}
       <p className="text-xs text-gray-500 mt-2">Routing aid only. LoopBack records handoffs; it does not certify compliance. Confirm with the official CPCB or State Board source.</p>
     </div>
   );

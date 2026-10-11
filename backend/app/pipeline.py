@@ -58,15 +58,6 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
             slider_w=stream.get("slider_w", 0.5), characterize_fn=characterize_waste,
         )
 
-        # The orchestrator agent drives the tools; it is optional (USE_AGENT) and best-effort.
-        # Whatever it did or skipped, the loop below completes and re-checks every item in
-        # plain code, so the stored result never depends on the model behaving.
-        agent_run = None
-        if get_settings().use_agent:
-            t_agent = time.monotonic()
-            agent_run = run_orchestrator(ctx)
-            timings["agent_ms"] = int((time.monotonic() - t_agent) * 1000)
-
         characterization = run_characterize(ctx)
         timings["characterize_ms"] = ctx.characterize_ms
 
@@ -102,16 +93,16 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
 
         timings["routing_ms"] = int((time.monotonic() - t1) * 1000)
 
-        if refused:
+        no_items = not characterization.items
+        if no_items:
+            status = "NEEDS_REVIEW"  # nothing recognisable as waste: never report this as routed
+        elif refused:
             status = "NEEDS_REVIEW"
         elif needs_review or characterization.overall_confidence < LOW_CONFIDENCE_THRESHOLD:
             status = "NEEDS_REVIEW"
         else:
             status = "ROUTED"
 
-        extra = {}
-        if agent_run is not None:
-            extra["agent"] = {k: v for k, v in agent_run.items() if k in ("summary", "error", "tool_calls", "usage")}
         storage.update_stream(
             stream_id,
             status=status,
@@ -120,9 +111,26 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
             receipts=receipts,
             assessments=assessments,
             timings=timings,
-            **extra,
+            **({"error": "No waste item was detected in the photo. Upload a clearer photo of the waste."} if no_items else {}),
         )
         logger.info(json.dumps({"step": "pipeline", "stream_id": stream_id, "status": status, **timings}))
+
+        # The orchestrator agent is optional (USE_AGENT) and best-effort. It runs AFTER the
+        # result is stored, so the user is never kept waiting on its 15-60 s of model calls;
+        # it reuses the cached characterization/routing in ctx, and its summary is attached
+        # to the finished stream when it completes.
+        if get_settings().use_agent:
+            try:
+                t_agent = time.monotonic()
+                agent_run = run_orchestrator(ctx)
+                timings["agent_ms"] = int((time.monotonic() - t_agent) * 1000)
+                storage.update_stream(
+                    stream_id,
+                    timings=timings,
+                    agent={k: v for k, v in agent_run.items() if k in ("summary", "error", "tool_calls", "usage")},
+                )
+            except Exception as exc:  # the result is already stored; never fail it over the optional agent
+                logger.info(json.dumps({"step": "agent", "stream_id": stream_id, "error": str(exc)}))
         return storage.get_stream(stream_id)
 
     except LocationError as exc:

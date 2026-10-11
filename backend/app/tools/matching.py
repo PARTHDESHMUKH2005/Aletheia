@@ -307,6 +307,7 @@ def find_processors(
             "section_ref": rule.get("section_ref"),
             "handler_requirement": rule["handler_requirement"],
             "paperwork": rule["paperwork"],
+            "key_requirements": rule.get("key_requirements", []),
             "hazardous": rule.get("hazardous", False) or bool(item.hazardous),
             "regulated": rule.get("regulated", False),
             "verified": rule["verified"],
