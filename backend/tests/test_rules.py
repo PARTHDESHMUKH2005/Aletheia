@@ -44,6 +44,16 @@ def test_aluminium_and_copper_require_review_for_conditional_epr_scope():
         assert result["verified"] is False
 
 
+def test_battery_routes_are_reviewed_without_claiming_every_battery_is_hazardous_waste():
+    for material in ("battery_lead_acid", "battery_lithium"):
+        result = lookup_rules(material)
+        assert "as amended through 2025" in result["rule_name"]
+        assert "r. 5" in result["section_ref"]
+        assert result["review_required"] is True
+        assert result["verified"] is False
+        assert any("not a legal classification" in text for text in result["key_requirements"])
+
+
 def test_rules_json_only_has_materials_from_the_build_md_enum():
     allowed = {
         "aluminium_scrap", "steel_scrap", "copper_scrap", "mixed_metal",

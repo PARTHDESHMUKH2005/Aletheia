@@ -210,30 +210,32 @@
     "material": "battery_lead_acid",
     "hazardous": true,
     "regulated": true,
-    "rule_name": "Battery Waste Management Rules, 2022",
-    "section_ref": null,
-    "handler_requirement": "authorized battery recycler or producer take-back",
+    "rule_name": "Battery Waste Management Rules, 2022 (as amended through 2025)",
+    "section_ref": "Battery Waste Management Rules, 2022 rr. 2, 5, 8-9; as amended through S.O. 958(E), 2025",
+    "handler_requirement": "eligible collection, refurbishment or recycling route; recipient registration must be checked",
     "paperwork": [
       "transfer record",
       "ledger record"
     ],
     "review_required": true,
     "basis": [
-      "M"
+      "V",
+      "M",
+      "P"
     ],
     "key_requirements": [
-      "Handle as hazardous waste: authorized handlers only",
-      "Battery Waste Management Rules, 2022 apply (producer EPR)",
-      "Human review before handoff"
+      "Keep waste batteries separate from other waste and use an eligible collection, refurbishment or recycling route (Battery Rules, 2022 r. 5).",
+      "The app's hazard flag and recipient check are conservative safety policy, not a legal classification of every battery as hazardous waste.",
+      "Human review before handoff (LoopBack policy)."
     ]
   },
   {
     "material": "battery_lithium",
     "hazardous": true,
     "regulated": true,
-    "rule_name": "Battery Waste Management Rules, 2022",
-    "section_ref": null,
-    "handler_requirement": "authorized battery recycler",
+    "rule_name": "Battery Waste Management Rules, 2022 (as amended through 2025)",
+    "section_ref": "Battery Waste Management Rules, 2022 rr. 2, 5, 8-9; as amended through S.O. 958(E), 2025",
+    "handler_requirement": "eligible collection, refurbishment or recycling route; recipient registration must be checked",
     "paperwork": [
       "transfer record",
       "fire risk flag",
@@ -241,12 +243,14 @@
     ],
     "review_required": true,
     "basis": [
-      "M"
+      "V",
+      "M",
+      "P"
     ],
     "key_requirements": [
-      "Handle as hazardous waste: authorized handlers only",
-      "Battery Waste Management Rules, 2022 apply (producer EPR)",
-      "Fire risk: no mixing with other waste; human review before handoff"
+      "Keep waste batteries separate from other waste and use an eligible collection, refurbishment or recycling route (Battery Rules, 2022 r. 5).",
+      "The app's hazard flag and recipient check are conservative safety policy, not a legal classification of every battery as hazardous waste.",
+      "Lithium battery fire warning and human review are LoopBack safety policies."
     ]
   },
   {

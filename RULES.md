@@ -14,7 +14,7 @@ Every statement carries a label:
 
 Rule numbers are given only where the official text has been checked. Where the exact provision or applicability is uncertain, leave `section_ref` empty and keep the row in human review.
 
-Official sources: [CPCB SWM Rules, 2026](https://swm.cpcb.gov.in/images/solid-waste-management-rules-2026.pdf), [MoEFCC HOTWM Amendment Rules, 2025 (G.S.R. 438(E))](https://moef.gov.in/storage/tender/1751520898.pdf), CPCB (Waste Management section), MoEFCC, and the eGazette of India. Check official sources for the latest amendment before relying on a row.
+Official sources checked during this update: [CPCB SWM Rules, 2026](https://swm.cpcb.gov.in/images/solid-waste-management-rules-2026.pdf), [MoEFCC HOTWM Amendment Rules, 2025 (G.S.R. 438(E))](https://moef.gov.in/storage/tender/1751520898.pdf), the linked MoEFCC/CPCB notifications in the sections below, and the [MoEFCC rules index](https://moef.gov.in/rules-regulations-3). Check the official index for later amendments before relying on a row.
 
 ## 1. Quick map: waste to governing rule
 
@@ -25,7 +25,7 @@ Official sources: [CPCB SWM Rules, 2026](https://swm.cpcb.gov.in/images/solid-wa
 | Paper, cardboard | Solid Waste Management Rules, 2026 [V] | Yes. Segregate as dry waste and follow local-body collection directions; additional duties apply to specified institutions and bulk waste generators [V] |
 | Computers, IT equipment, appliances | E-Waste (Management) Rules, 2022 | Yes. Registered entities only. |
 | Storage drives | E-Waste Rules for the device, plus data wipe [P] | Yes |
-| Lead-acid (UPS) and lithium batteries | Battery Waste Management Rules, 2022 [M] | Yes. Hazardous handling. |
+| Lead-acid (UPS) and lithium batteries | Battery Waste Management Rules, 2022, as amended [V] | Separate from mixed waste and hand over through an eligible collection, refurbishment or recycling route. LoopBack's hazard flag is a safety precaution, not a legal classification under the Hazardous and Other Wastes Rules [V, P] |
 | Used oil, solvents, chemical waste | Hazardous and Other Wastes Rules, 2016 | Yes. Authorization and manifest. |
 | Plastic packaging and plastic waste | Plastic Waste Management Rules, 2016 and amendments | Yes. EPR and registration. |
 | Household special-care waste (paint cans, household batteries, bulbs) | Solid Waste Management Rules, 2026; separate hazardous-waste rules may also apply | Segregate and hand over under local-body directions; confirm the current collection route [V, M] |
@@ -33,7 +33,7 @@ Official sources: [CPCB SWM Rules, 2026](https://swm.cpcb.gov.in/images/solid-wa
 
 ## 2. E-Waste (Management) Rules, 2022
 
-Principal rules: G.S.R. 801(E), 2 November 2022. Amended by G.S.R. 534(E), 24 July 2023, and G.S.R. 164(E), 8 March 2024 [V]. In force from 1 April 2023 [M]. These replaced the E-Waste Rules, 2016 [M].
+Principal rules: [G.S.R. 801(E), 2 November 2022](https://moef.gov.in/uploads/2022/11/E-Waste-Management-Rules-2022.pdf). The official text and [MoEFCC rules index](https://moef.gov.in/rules-regulations-3) list G.S.R. 61(E), 30 January 2023; G.S.R. 534(E), 24 July 2023; G.S.R. 164(E), 8 March 2024; and G.S.R. 699(E), 12 November 2024. The rules came into force on 1 April 2023 and superseded the 2016 rules [V]. The March 2024 amendment changed the dismantler definition, added a possible nine-month reporting extension, and added EPR-certificate platform provisions. The November 2024 amendment replaced rule 23's contravention provision with a penalty under section 15 of the Act [V].
 
 **Verified**
 - Rule 3(f): "dismantler" means any person or entity engaged in dismantling used electrical and electronic equipment and components, in accordance with CPCB guidelines [V].
@@ -48,7 +48,7 @@ Principal rules: G.S.R. 801(E), 2 November 2022. Amended by G.S.R. 534(E), 24 Ju
 - E-waste must go to registered dismantlers, recyclers or refurbishers. It must not be landfilled, burned or sold to unregistered dealers [M].
 - Restriction on hazardous substances in equipment (lead, mercury, cadmium, hexavalent chromium, PBB, PBDE), with a 0.1 percent limit by weight and 0.01 percent for cadmium [M].
 - Annual returns are filed on the CPCB portal [M].
-- Check whether the term "bulk consumer" (used in the 2016 rules for large institutions) still exists in the 2022 text, and what duties it carries. This matters for universities and data centers [M].
+- Rule 3(b) defines a bulk consumer as an entity that has used at least 1,000 Schedule I units at any time in the financial year, including an e-retailer. Rule 8 requires such bulk consumers to hand over their e-waste only to a registered producer, refurbisher or recycler. The 2022 rule does not impose the old 2016 annual-report duty on bulk consumers [V]. Organizations need their equipment counts to determine whether the definition applies.
 
 **LoopBack mapping**
 - Working equipment goes to a registered refurbisher first. Non-working equipment goes to a registered dismantler or recycler [P, following the waste hierarchy].
@@ -84,19 +84,19 @@ Principal rules: G.S.R. 395(E), 4 April 2016. Amendments on the CPCB page run fr
 
 ## 4. Battery Waste Management Rules, 2022
 
-Nothing in your uploads covers these, so everything here is [M]. Notified in August 2022 and in force from 1 April 2023, replacing the Batteries (Management and Handling) Rules, 2001. Later amendments exist.
+The [Battery Waste Management Rules, 2022 (S.O. 3984(E), 22 August 2022)](https://moef.gov.in/uploads/pdf-uploads/pdf_676567459cdfe9.16099796.pdf) apply to all battery types regardless of chemistry, size, volume, weight, material composition or use (rule 2). The MoEFCC rules index lists amendments dated 25 October 2023, 14 March 2024, 20 June 2024, 3 December 2024 and 24 February 2025. The 2025 amendment permits specified EPR registration-number QR/barcode labeling, subject to notice to CPCB, and creates a quarterly published producer list [V].
 
 - Covers all battery types: electric vehicle, portable, automotive and industrial [M].
 - Producers, including importers, carry EPR, register on a central portal, and meet recycling and recovered-material targets through EPR certificates [M].
 - Batteries must be labelled. Landfilling and incineration are prohibited [M].
-- Entities that hold used batteries (including large institutions with UPS banks) must hand them to the producer, a collection point or an authorized recycler or refurbisher [M].
-- Lead-acid batteries (UPS and backup) move only to authorized battery recyclers or back to the seller, never to general scrap dealers [M].
+- Consumers must keep waste batteries separate from other waste streams and give them to an entity engaged in collection, refurbishment or recycling (rule 5). Recyclers and refurbishers must be registered under the rules (rules 8-9) [V].
+- Waste batteries may be hazardous or non-hazardous under the rules' definition. LoopBack marks battery streams for safety review and restricts them to a recipient with checked eligibility as a precaution; this flag does not assert that every battery is hazardous waste under the HOTWM Rules [V, P].
 
-**LoopBack mapping:** `battery_lead_acid` and `battery_lithium` are hazardous, routed only to authorized battery recyclers, and flagged for human review. Lithium batteries also carry a fire risk, so the agent surfaces a warning [P].
+**LoopBack mapping:** `battery_lead_acid` and `battery_lithium` get an internal hazard/safety flag and human review. Routes require a checked recipient reference in the demo. This is a conservative product rule, not a finding that every battery is legally hazardous waste. Lithium batteries also carry a fire risk, so the agent surfaces a warning [P].
 
 ## 5. Plastic Waste Management Rules, 2016 and amendments
 
-Principal rules: G.S.R. 320(E), 18 March 2016. Amended by G.S.R. 285(E) (27 March 2018), 571(E) (12 August 2021), 647(E) (17 August 2021), 133(E) (16 February 2022) and the Second Amendment, G.S.R. 522(E) (6 July 2022) [V].
+Principal rules: G.S.R. 320(E), 18 March 2016. Amended by G.S.R. 285(E) (27 March 2018), 571(E) (12 August 2021), 647(E) (17 August 2021), 133(E) (16 February 2022), 522(E) (6 July 2022), 318(E) (27 April 2023), 807(E) (30 October 2023) and G.S.R. 201(E) (14 March 2024) [V]. The official [MoEFCC 2024 amended text](https://moef.gov.in/uploads/pdf-uploads/pdf_684015cdcfe270.47591512.pdf) and [rules index](https://moef.gov.in/rules-regulations-3) provide the source record.
 
 **Verified from G.S.R. 522(E)**
 - New definitions: biodegradable plastics, end of life disposal, importer, plastic packaging, plastic waste processors, post-consumer and pre-consumer plastic packaging waste, recyclers, reuse, use of recycled plastic, and waste to energy [V].
@@ -115,6 +115,8 @@ Principal rules: G.S.R. 320(E), 18 March 2016. Amended by G.S.R. 285(E) (27 Marc
 - Recycled content requirements for rigid packaging under the EPR guidelines [M].
 
 **LoopBack mapping:** plastic is not in the current material list. If you add it, route to plastic recyclers or processors registered under rule 13 and prefer reuse and recycling over waste-to-energy, following the hierarchy [P].
+
+The December 2024 [EPR rules proposal for paper, glass and metal packaging and sanitary products](https://moef.gov.in/storage/tender/1734524379.pdf) is explicitly a draft notification. Do not treat it as an operative obligation unless a final notification is confirmed. The draft excludes non-ferrous metal-based packaging.
 
 ## 6. Solid Waste Management Rules, 2026
 
