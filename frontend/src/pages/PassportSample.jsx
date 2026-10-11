@@ -4,7 +4,7 @@ import Icon from "../components/Icon.jsx";
 import { DetailList, PageHeader, SectionCard, StatusBadge, Timeline } from "../components/PassportUI.jsx";
 import { passportSample } from "../data/passportSample.js";
 
-export default function Passport() {
+export default function PassportSample() {
   const { passportId } = useParams();
   const [copyMessage, setCopyMessage] = useState("");
   const sample = passportSample;

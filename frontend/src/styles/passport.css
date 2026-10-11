@@ -104,6 +104,9 @@
 .lb-badge { width: fit-content; padding: 4px 8px; border-radius: 999px; display: inline-flex; align-items: center; color: #5f6157; background: #eeece5; font-size: 10px; line-height: 1.5; font-weight: 600; white-space: nowrap; }
 .lb-badge-demo { color: var(--forest); background: var(--pale-sage); }
 .lb-badge-pending { color: #765c26; background: #f3ead4; }
+.lb-badge-success { color: #14532d; background: #dcfce7; }
+.lb-badge-danger { color: #7f1d1d; background: #fee2e2; }
+.lb-passport-map { border: 1px solid var(--border); border-radius: 10px; margin-top: 16px; z-index: 0; }
 .lb-detail-list { margin: 0; }
 .lb-detail-list > div { min-height: 52px; padding: 11px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; gap: 20px; }
 .lb-detail-list > div:last-child { border: 0; }

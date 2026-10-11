@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { rememberStream } from "../lib/recent.js";
 import { api, resizeImageToJpeg } from "../api.js";
 import { ORGS } from "../orgs.js";
 
@@ -36,6 +37,7 @@ export default function Upload() {
         photo_keys: [target.key],
         pincode: pincode || null,
       });
+      rememberStream(stream_id);
       navigate(`/streams/${stream_id}`);
     } catch (err) {
       setError(err.message);

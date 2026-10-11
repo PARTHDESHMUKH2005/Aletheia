@@ -52,7 +52,7 @@ export default function AppLayout({ children }) {
           </div>)}
         </nav>
         <div className="lb-sidebar-bottom">
-          <div className="lb-system-status lb-expanded"><span /><div><strong>Passport UI preview</strong><p>Sample data only</p></div></div>
+          <div className="lb-system-status lb-expanded"><span /><div><strong>Live passports</strong><p>Updates after each upload</p></div></div>
           <div className="lb-account-row"><span className="lb-avatar">LB</span><div className="lb-expanded"><strong>Local workspace</strong><span>LoopBack demo</span></div></div>
           <button className="lb-collapse-button" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-expanded={!collapsed} onClick={() => setCollapsed(value => !value)}>

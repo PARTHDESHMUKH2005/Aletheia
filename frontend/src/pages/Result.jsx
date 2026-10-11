@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api.js";
+import { rememberStream } from "../lib/recent.js";
 
 const STATUS_STYLE = {
   ROUTED: "bg-green-100 text-green-800",
@@ -37,6 +38,8 @@ export default function Result() {
   const wipePendingRef = useRef(false);
   const draftPendingRef = useRef(false);
   const pollRef = useRef(null);
+
+  useEffect(() => { if (streamId) rememberStream(streamId); }, [streamId]);
 
   async function handleWipe() {
     if (wipePendingRef.current) return;
