@@ -143,7 +143,7 @@
     "regulated": true,
     "rule_name": "E-Waste (Management) Rules, 2022",
     "section_ref": "Principal rules G.S.R. 801(E), 2 Nov 2022",
-    "handler_requirement": "registered refurbisher, dismantler or recycler",
+    "handler_requirement": "registered refurbisher or recycler; recipient eligibility must be checked",
     "paperwork": [
       "transfer record",
       "ledger record"
@@ -154,8 +154,8 @@
       "M"
     ],
     "key_requirements": [
-      "Hand over only to registered dismantlers, recyclers or refurbishers (CPCB portal)",
-      "Must not be landfilled, burned or sold to unregistered dealers",
+      "Bulk consumers must hand over only to a registered producer, refurbisher or recycler (E-Waste Rules, 2022, rule 8); check recipient eligibility",
+      "Rule 9 requires recyclers to send unrecycled fractions to registered recyclers and recycling residues to an authorized TSDF",
       "Working equipment goes to a registered refurbisher first (LoopBack policy)",
       "Producers meet EPR targets through certificates from registered recyclers"
     ]
@@ -166,7 +166,7 @@
     "regulated": true,
     "rule_name": "E-Waste (Management) Rules, 2022, data wipe policy",
     "section_ref": "Principal rules G.S.R. 801(E), 2 Nov 2022",
-    "handler_requirement": "registered refurbisher or recycler after wipe or destruction",
+    "handler_requirement": "registered refurbisher or recycler after wipe or destruction; recipient eligibility must be checked",
     "paperwork": [
       "transfer record",
       "data wipe certificate",
@@ -179,9 +179,9 @@
       "P"
     ],
     "key_requirements": [
-      "Hand over only to registered dismantlers, recyclers or refurbishers (CPCB portal)",
+      "Bulk consumers must hand over only to a registered producer, refurbisher or recycler (E-Waste Rules, 2022, rule 8); check recipient eligibility",
       "Data wipe or destruction record required before any move (LoopBack policy, not stated as law)",
-      "Must not be landfilled, burned or sold to unregistered dealers"
+      "Rule 9 requires recyclers to send unrecycled fractions to registered recyclers and recycling residues to an authorized TSDF"
     ]
   },
   {
@@ -190,7 +190,7 @@
     "regulated": true,
     "rule_name": "E-Waste (Management) Rules, 2022",
     "section_ref": "Principal rules G.S.R. 801(E), 2 Nov 2022",
-    "handler_requirement": "registered refurbisher, dismantler or recycler",
+    "handler_requirement": "registered refurbisher or recycler; recipient eligibility must be checked",
     "paperwork": [
       "transfer record",
       "ledger record"
@@ -201,8 +201,8 @@
       "M"
     ],
     "key_requirements": [
-      "Hand over only to registered dismantlers, recyclers or refurbishers (CPCB portal)",
-      "Must not be landfilled, burned or sold to unregistered dealers",
+      "Bulk consumers must hand over only to a registered producer, refurbisher or recycler (E-Waste Rules, 2022, rule 8); check recipient eligibility",
+      "Rule 9 requires recyclers to send unrecycled fractions to registered recyclers and recycling residues to an authorized TSDF",
       "Producers meet EPR targets through certificates from registered recyclers"
     ]
   },
@@ -211,7 +211,7 @@
     "hazardous": true,
     "regulated": true,
     "rule_name": "Battery Waste Management Rules, 2022 (as amended through 2025)",
-    "section_ref": "Battery Waste Management Rules, 2022 rr. 2, 5, 8-9; as amended through S.O. 958(E), 2025",
+    "section_ref": "Battery Waste Management Rules, 2022 r. 2, r. 5, rr. 8-9; as amended through S.O. 958(E), 2025",
     "handler_requirement": "eligible collection, refurbishment or recycling route; recipient registration must be checked",
     "paperwork": [
       "transfer record",
@@ -220,7 +220,6 @@
     "review_required": true,
     "basis": [
       "V",
-      "M",
       "P"
     ],
     "key_requirements": [
@@ -234,7 +233,7 @@
     "hazardous": true,
     "regulated": true,
     "rule_name": "Battery Waste Management Rules, 2022 (as amended through 2025)",
-    "section_ref": "Battery Waste Management Rules, 2022 rr. 2, 5, 8-9; as amended through S.O. 958(E), 2025",
+    "section_ref": "Battery Waste Management Rules, 2022 r. 2, r. 5, rr. 8-9; as amended through S.O. 958(E), 2025",
     "handler_requirement": "eligible collection, refurbishment or recycling route; recipient registration must be checked",
     "paperwork": [
       "transfer record",
@@ -244,7 +243,6 @@
     "review_required": true,
     "basis": [
       "V",
-      "M",
       "P"
     ],
     "key_requirements": [

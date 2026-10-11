@@ -20,6 +20,11 @@ Per kg: `money = net ₹/kg ÷ best net ₹/kg`, `carbon = net CO2e/kg ÷ best n
 - There are 16 emission-factor rows: eight match cited US EPA WARM source rows and eight are unverified or missing. Even the source-matched rows are US proxies, not India-specific factors. The paper and cardboard values are rough estimates, not verified WARM lookups; missing factors leave a candidate unscored.
 - Processors have no `authorization_ref`; every one is shown as "demo only, authorization not checked".
 
+## Vision evaluation dataset
+- `dataset-resized/` is the 2,527-image TrashNet collection. The source and MIT license attribution are recorded in [`dataset-resized/README.md`](../dataset-resized/README.md) and [`dataset-resized/LICENSE`](../dataset-resized/LICENSE).
+- `eval/labels.csv` contains 31 reviewed rows: 10 cardboard, 10 paper, and 11 broad metal-scrap examples. It does not cover e-waste, batteries, hazard flags, or storage devices.
+- The live evaluation was not run for this review because no model API key is configured. Do not cite accuracy or confidence results until the evaluation is run with an available model account and the output is recorded.
+
 ## Prices
 Prices with `price_basis: "sourced"` (steel HMS Mumbai, Jalna, Mandi Gobindgarh; copper armature scrap Delhi, Mumbai) were checked on 2026-10-10 against `dataset-resized/Raw Material Prices December 2024.pdf` (BigMint, ₹/tonne ÷ 1000). All five matched. They are city wholesale benchmarks, not quotes from the fictional buyers. The PDF prints "13 Dec" without a year; 2024 comes from its title.
 

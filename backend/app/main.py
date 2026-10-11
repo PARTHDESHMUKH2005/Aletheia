@@ -303,7 +303,7 @@ def draft_pickup_message(stream_id: str, processor_id: str, item_index: int = 0,
     draft_message = (
         f"Pickup request for {processor['name']}: {item_data['material']} ({quantity_text}), "
         f"pickup location pincode {pincode}. Requested pickup window: next business day. "
-        f"-- sent via LoopBack on behalf of {stream['org_id']}."
+        f"-- prepared by LoopBack on behalf of {stream['org_id']}."
     )
 
     ledger.append(storage, stream_id, event="pickup_requested", payload={

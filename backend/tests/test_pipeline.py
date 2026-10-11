@@ -11,7 +11,11 @@ from app.storage.local import LocalStorage
 @pytest.fixture
 def storage():
     with tempfile.TemporaryDirectory() as tmp:
-        yield LocalStorage(db_path=Path(tmp) / "test.db")
+        store = LocalStorage(db_path=Path(tmp) / "test.db")
+        try:
+            yield store
+        finally:
+            store.close()
 
 
 def make_characterization(material="steel_scrap", confidence=0.9, hazardous=False, note="clean steel can", quantity_kg=100.0) -> Characterization:

@@ -258,6 +258,9 @@ def org_impact(streams: list[dict], ledgers: dict[str, list[dict]]) -> dict:
                     due = item.is_storage_device or item.material == "e_waste_storage_drive"
                 if due and not present:
                     missing_docs.append({"stream_id": sid, "document": paper, "material": item.material})
+            if (item.material in {"aluminium_scrap", "steel_scrap", "copper_scrap"}
+                    and handoff == "verified" and "handoff_weighed" not in event_names):
+                missing_docs.append({"stream_id": sid, "document": "weighment slip", "material": item.material})
             counted += 1
 
             reuse_id = routing.get("reuse_recommended_processor_id")

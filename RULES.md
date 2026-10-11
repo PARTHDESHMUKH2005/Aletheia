@@ -14,7 +14,7 @@ Every statement carries a label:
 
 Rule numbers are given only where the official text has been checked. Where the exact provision or applicability is uncertain, leave `section_ref` empty and keep the row in human review.
 
-Official sources checked during this update: [CPCB SWM Rules, 2026](https://swm.cpcb.gov.in/images/solid-waste-management-rules-2026.pdf), [MoEFCC HOTWM Amendment Rules, 2025 (G.S.R. 438(E))](https://moef.gov.in/storage/tender/1751520898.pdf), the linked MoEFCC/CPCB notifications in the sections below, and the [MoEFCC rules index](https://moef.gov.in/rules-regulations-3). Check the official index for later amendments before relying on a row.
+Official sources checked on 11 October 2026: [CPCB SWM Rules, 2026](https://swm.cpcb.gov.in/images/solid-waste-management-rules-2026.pdf), [MoEFCC HOTWM Amendment Rules, 2025 (G.S.R. 438(E))](https://moef.gov.in/storage/tender/1751520898.pdf), [MoEFCC/CPCB rule texts and amendments linked below](https://moef.gov.in/rules-regulations-3), [CPCB E-Waste FAQ](https://cpcb.nic.in/uploads/Projects/E-Waste/FAQ_ewaste_23012024.pdf), and [Haryana SPCB's copy of the HOTWM Rules, 2016](https://www.hspcb.gov.in/uploads/laws/hsm1.pdf). Check the official indexes for later amendments before relying on a row.
 
 ## 1. Quick map: waste to governing rule
 
@@ -23,7 +23,7 @@ Official sources checked during this update: [CPCB SWM Rules, 2026](https://swm.
 | Clean aluminium, steel, copper scrap | Solid Waste Management Rules, 2026 for dry waste; the 2025 hazardous-waste amendment adds conditional EPR rules for scheduled non-ferrous products [V, M] | Yes. Segregation and local-body handoff duties apply. Additional non-ferrous EPR duties depend on the product and actor; review aluminium and copper streams. |
 | Mixed metal scrap | Solid Waste Management Rules, 2026; hazardous-waste rules if contaminated; conditional non-ferrous EPR [V, M, P] | Yes. Review before handoff if contamination or product scope is unclear |
 | Paper, cardboard | Solid Waste Management Rules, 2026 [V] | Yes. Segregate as dry waste and follow local-body collection directions; additional duties apply to specified institutions and bulk waste generators [V] |
-| Computers, IT equipment, appliances | E-Waste (Management) Rules, 2022 | Yes. Registered entities only. |
+| Computers, IT equipment, appliances | E-Waste (Management) Rules, 2022 | Yes. Bulk consumers must hand over only to a registered producer, refurbisher or recycler. |
 | Storage drives | E-Waste Rules for the device, plus data wipe [P] | Yes |
 | Lead-acid (UPS) and lithium batteries | Battery Waste Management Rules, 2022, as amended [V] | Separate from mixed waste and hand over through an eligible collection, refurbishment or recycling route. LoopBack's hazard flag is a safety precaution, not a legal classification under the Hazardous and Other Wastes Rules [V, P] |
 | Used oil, solvents, chemical waste | Hazardous and Other Wastes Rules, 2016 | Yes. Authorization and manifest. |
@@ -41,17 +41,16 @@ Principal rules: [G.S.R. 801(E), 2 November 2022](https://moef.gov.in/uploads/20
 - Rule 15, sub-rules (7) to (10): the Centre may set up one or more platforms to exchange or transfer EPR certificates. CPCB fixes a floor and ceiling price equal to 30 percent and 100 percent of the environmental compensation for not meeting EPR obligations under rule 22. Trades between registered entities on the portal must fall between those prices [V].
 - Rule 22: environmental compensation for non-fulfilment of EPR [V].
 
-**From memory**
-- Applies to manufacturers, producers, refurbishers, dismantlers and recyclers of electrical and electronic equipment listed in a schedule (over 100 items, covering IT and telecom equipment, consumer electronics and large and small appliances) [M].
-- Producers, refurbishers, dismantlers and recyclers must register on the CPCB portal [M].
-- Producers meet annual EPR targets, a percentage of past sales, by buying EPR certificates from registered recyclers and refurbishers. Separate certificates exist for recycling and refurbishing [M].
-- E-waste must go to registered dismantlers, recyclers or refurbishers. It must not be landfilled, burned or sold to unregistered dealers [M].
-- Restriction on hazardous substances in equipment (lead, mercury, cadmium, hexavalent chromium, PBB, PBDE), with a 0.1 percent limit by weight and 0.01 percent for cadmium [M].
-- Annual returns are filed on the CPCB portal [M].
-- Rule 3(b) defines a bulk consumer as an entity that has used at least 1,000 Schedule I units at any time in the financial year, including an e-retailer. Rule 8 requires such bulk consumers to hand over their e-waste only to a registered producer, refurbisher or recycler. The 2022 rule does not impose the old 2016 annual-report duty on bulk consumers [V]. Organizations need their equipment counts to determine whether the definition applies.
+**Verified from the principal rules and CPCB guidance**
+- Rule 2 covers entities involved with equipment in Schedule I. Rule 4 requires portal registration for manufacturers, producers, refurbishers and recyclers; dismantlers are not listed as a separate registration category [V].
+- Producers fulfil EPR targets through the portal. The rules provide distinct recycling and refurbishing certificates; refurbishing defers the producer's EPR liability for the corresponding quantity and period [V].
+- Rule 3(b) defines a bulk consumer as an entity that has used at least 1,000 Schedule I units at any point in the financial year, including an e-retailer. Rule 8 requires such consumers to hand over e-waste only to a registered producer, refurbisher or recycler. The 2022 rules do not assign a bulk-consumer registration or annual-return duty [V]. Organizations need their equipment counts to determine whether this definition applies.
+- Rule 16 restricts lead, mercury, cadmium, hexavalent chromium, PBB and PBDE in covered new equipment and parts to 0.1% by weight in homogeneous materials, except cadmium at 0.01%, subject to listed exemptions [V].
+- Registered manufacturers, producers, refurbishers and recyclers have the specific portal return duties set out in their respective rules. Do not generalize those duties to every generator [V].
+- CPCB's current FAQ says dismantlers are not a Rule 4 portal-registration category. Check the recipient's applicable registration and other permissions before relying on a dismantler route [V].
 
 **LoopBack mapping**
-- Working equipment goes to a registered refurbisher first. Non-working equipment goes to a registered dismantler or recycler [P, following the waste hierarchy].
+- Working equipment can be routed to a registered refurbisher; other e-waste goes to a registered recycler. The demo does not establish a dismantler's eligibility [P].
 - Storage drives: no move until a wipe or destruction record exists [P]. I am not aware of a specific rule that mandates this, so do not present it as law.
 
 ## 3. Hazardous and Other Wastes (Management and Transboundary Movement) Rules, 2016
@@ -69,14 +68,14 @@ Principal rules: G.S.R. 395(E), 4 April 2016. Amendments on the CPCB page run fr
 - Schedule IX (waste tyre EPR): platform and price band, retreader duties (monthly portal submissions, quarterly and annual returns), and relaxation of return deadlines [V].
 - Form 2 (authorization), general condition 15: hazardous waste produced sporadically, for example by fire, natural calamity or a chemical spill, must be sent to a disposal facility operator or actual user. Hazardous waste produced routinely in the consented process must be added to the authorization within one month of being identified [V].
 
-**From memory**
-- Occupiers who generate hazardous waste need authorization from the State Pollution Control Board (application Form 1, authorization Form 2) [M].
-- General storage limit of 90 days, with the amendments above relaxing it for small generators [M].
-- Movement needs a manifest and an authorized transporter [M].
-- Hazardous waste may go only to authorized actual users, recyclers or treatment, storage and disposal facilities [M].
-- Containers must be labelled and packaged to prescribed standards [M].
-- Used or spent oil is listed as hazardous waste. It goes only to registered recyclers or re-refiners, with used oil EPR applying since 2023 [M].
-- Accident reporting duties exist [M].
+**Verified from the rules**
+- Rule 6 requires an occupier handling listed hazardous waste to obtain State Board authorization; apply in Form 1 and receive authorization in Form 2 [V]. Applicability depends on the waste and activity.
+- Rule 8 sets a general 90-day storage limit, subject to specified exceptions. Rule 8(1)(b) permits up to 180 days for eligible small generators producing 5–10 tonnes/year and up to 365 days for those producing under 5 tonnes/year [V].
+- Rules 18–19 require safe transport and the Form 10 manifest for domestic movement. The sender or receiver arranging transport must have the necessary State Board transport authorization [V].
+- Rule 4 restricts handling and disposal to the authorized actual users and facilities named by the rules and authorization [V].
+- Rule 17 requires safe packaging and Form 8 labels; Rule 18(2) also requires the Form 9 transport-emergency information [V].
+- Used oil is covered by the rules' waste entries. The 2023 amendment inserted the used-oil EPR chapter, effective 1 April 2024; the EPR registration and targets depend on the role of the entity [V]. Do not describe every used-oil generator as an EPR-obligated producer.
+- Rule 22 requires immediate reporting to the State Board or Committee when an accident occurs during handling of hazardous or other waste, using Form 11 [V].
 
 **LoopBack mapping**
 - Used oil, solvents, chemical residues, contaminated metal scrap and similar items are hazardous. The agent only routes them to processors whose authorization covers that waste type, and flags them for human review. It never advises on handling [P].
@@ -86,9 +85,9 @@ Principal rules: G.S.R. 395(E), 4 April 2016. Amendments on the CPCB page run fr
 
 The [Battery Waste Management Rules, 2022 (S.O. 3984(E), 22 August 2022)](https://moef.gov.in/uploads/pdf-uploads/pdf_676567459cdfe9.16099796.pdf) apply to all battery types regardless of chemistry, size, volume, weight, material composition or use (rule 2). The MoEFCC rules index lists amendments dated 25 October 2023, 14 March 2024, 20 June 2024, 3 December 2024 and 24 February 2025. The 2025 amendment permits specified EPR registration-number QR/barcode labeling, subject to notice to CPCB, and creates a quarterly published producer list [V].
 
-- Covers all battery types: electric vehicle, portable, automotive and industrial [M].
-- Producers, including importers, carry EPR, register on a central portal, and meet recycling and recovered-material targets through EPR certificates [M].
-- Batteries must be labelled. Landfilling and incineration are prohibited [M].
+- Covers battery types regardless of chemistry, shape, volume, weight, composition or use, subject to stated exclusions [V].
+- Producers carry EPR obligations; amendments set collection, recycling and refurbishment targets, registration, and certificate rules [V].
+- Schedule I sets battery labelling rules. Waste battery collected by a producer must be sent for recycling or refurbishment, not landfilling or incineration [V].
 - Consumers must keep waste batteries separate from other waste streams and give them to an entity engaged in collection, refurbishment or recycling (rule 5). Recyclers and refurbishers must be registered under the rules (rules 8-9) [V].
 - Waste batteries may be hazardous or non-hazardous under the rules' definition. LoopBack marks battery streams for safety review and restricts them to a recipient with checked eligibility as a precaution; this flag does not assert that every battery is hazardous waste under the HOTWM Rules [V, P].
 
@@ -109,10 +108,10 @@ Principal rules: G.S.R. 320(E), 18 March 2016. Amended by G.S.R. 285(E) (27 Marc
 - Form IV: annual data by 30 April to the State Pollution Control Board. Form VI note: annual information to CPCB by 30 April [V].
 - CPCB e-governance document: an in-house portal for registration of producers, importers and brand owners and for plastic waste processing facilities, with CPCB issuing online e-registration certificates. A separate portal handles compostable plastic certificates [V].
 
-**From memory**
-- EPR categories for plastic packaging: rigid (I), flexible single or multilayer (II), multilayered with a non-plastic layer (III), and compostable sheets and carry bags (IV) [M].
-- Ban on identified single-use plastic items from 1 July 2022, and minimum thickness requirements for carry bags [M].
-- Recycled content requirements for rigid packaging under the EPR guidelines [M].
+**Verified from the official amendments**
+- Schedule II defines five packaging categories: rigid (I), flexible (II), multilayered with a non-plastic layer (III), compostable (IV), and biodegradable (V) [V].
+- The 2021 amendment phased the minimum carry-bag thickness to 75 microns from 30 September 2021 and 120 microns from 31 December 2022. The ban on the notified single-use plastic items took effect on 1 July 2022 [V].
+- Schedule II sets recycled-content and reuse obligations by packaging category and year. Check the current schedule before applying a target to an entity [V].
 
 **LoopBack mapping:** plastic is not in the current material list. If you add it, route to plastic recyclers or processors registered under rule 13 and prefer reuse and recycling over waste-to-energy, following the hierarchy [P].
 
@@ -133,7 +132,7 @@ The Ministry of Environment, Forest and Climate Change notified the Solid Waste 
 
 - **Environment (Protection) Act, 1986** is the enabling law for all three gazettes you uploaded, which cite sections 3, 6, 8 and 25 [V].
 - **Bio-Medical Waste Management Rules, 2016** cover hospital and clinical waste [M]. Out of scope. The agent flags and refuses.
-- **Construction and Demolition Waste Management Rules, 2016** [M]. Out of scope for now.
+- **Environment (Construction and Demolition) Waste Management Rules, 2025 (G.S.R. 219(E))** superseded the 2016 rules and came into force on 1 April 2026 [V]. Out of LoopBack scope for now.
 - Radioactive waste, explosives and import or export under the Basel Convention are out of scope.
 
 ## 8. LoopBack material mapping (feeds rules.json)
@@ -146,11 +145,11 @@ The Ministry of Environment, Forest and Climate Change notified the Solid Waste 
 | `mixed_metal` | no, review if unsure | SWM Rules, 2026; HW Rules if contaminated; conditional non-ferrous EPR | authorized waste picker or collector after sorting; human review if uncertain | segregation and local-body handoff details | V, M, P |
 | `paper` | no | SWM Rules, 2026 (dry waste) | authorized waste picker or collector per local-body directions; authorized recycler where rule 5(2) applies | segregation and local-body handoff details | V, M, P |
 | `cardboard` | no | SWM Rules, 2026 (dry waste) | authorized waste picker or collector per local-body directions; authorized recycler where rule 5(2) applies | segregation and local-body handoff details | V, M, P |
-| `e_waste_computer` | regulated | E-Waste (Management) Rules, 2022 | registered refurbisher, dismantler or recycler | transfer record | V, M |
-| `e_waste_storage_drive` | regulated | E-Waste Rules, 2022, plus data wipe policy | registered refurbisher or recycler after wipe | transfer record, wipe certificate | V, M, P |
-| `e_waste_other` | regulated | E-Waste (Management) Rules, 2022 | registered refurbisher, dismantler or recycler | transfer record | V, M |
-| `battery_lead_acid` | yes | Battery Waste Management Rules, 2022 | authorized battery recycler or producer take-back | transfer record | M |
-| `battery_lithium` | yes | Battery Waste Management Rules, 2022 | authorized battery recycler | transfer record, fire risk flag | M |
+| `e_waste_computer` | regulated | E-Waste (Management) Rules, 2022 | registered refurbisher or recycler; do not assume dismantler registration | transfer record | V, P |
+| `e_waste_storage_drive` | regulated | E-Waste Rules, 2022, plus data wipe policy | registered refurbisher or recycler after wipe | transfer record, wipe certificate | V, P |
+| `e_waste_other` | regulated | E-Waste (Management) Rules, 2022 | registered refurbisher or recycler; do not assume dismantler registration | transfer record | V, P |
+| `battery_lead_acid` | safety flag | Battery Waste Management Rules, 2022 | eligible collection, refurbishment or recycling route; recipient eligibility checked | transfer record | V, P |
+| `battery_lithium` | safety flag | Battery Waste Management Rules, 2022 | eligible collection, refurbishment or recycling route; recipient eligibility checked | transfer record, fire risk flag | V, P |
 | `used_oil` | yes | Hazardous and Other Wastes Rules, 2016 | authorized used oil recycler or re-refiner | generator authorization, manifest | V, M |
 | `other` | unknown | review | human review | none | P |
 
@@ -163,12 +162,10 @@ The Ministry of Environment, Forest and Climate Change notified the Solid Waste 
 
 ## 10. Verification checklist
 
-1. Check the current principal texts and amendments: E-Waste Rules 2022, HW Rules 2016 including the 2025 amendment, Battery Waste Management Rules 2022, Plastic Waste Management Rules 2016, and SWM Rules 2026.
-2. Replace every [M] statement you plan to cite with the official wording and section number.
-3. Check whether the E-Waste 2022 text still has a "bulk consumer" duty.
-4. Confirm the hazardous waste storage period and the authorization form numbers.
-5. Check later amendments to the Battery Waste Management Rules and confirm how references to the superseded SWM 2016 rules are applied. HOTWM 2025 adds conditional non-ferrous EPR duties.
-6. Seed each processor with its `authorization_ref` and a check date.
+1. Recheck the official rule indexes for amendments before each release; these references were checked on 11 October 2026.
+2. Recheck every `rules.json` row that retains an `M` basis label before using it for a real waste stream or legal decision.
+3. Check how the old SWM 2016 cross-reference in the 2024 hazardous-waste amendment applies after the SWM Rules, 2026 superseded the 2016 rules.
+4. Seed each processor with its `authorization_ref` and a check date before enabling real routing.
 
 ## Machine-readable rules
 

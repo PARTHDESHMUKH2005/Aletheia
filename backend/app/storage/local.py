@@ -54,6 +54,16 @@ class LocalStorage(Storage):
         self.uploads_dir = uploads_dir or (self.db_path.parent / "uploads")
         self.uploads_dir.mkdir(parents=True, exist_ok=True)
 
+    def close(self) -> None:
+        """Release the SQLite handle, especially before removing temporary databases on Windows."""
+        self._conn.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, traceback) -> None:
+        self.close()
+
     def save_upload(self, key: str, data: bytes) -> None:
         path = self._upload_path(key)
         if not data or len(data) > MAX_UPLOAD_BYTES:

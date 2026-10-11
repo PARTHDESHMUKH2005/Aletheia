@@ -39,9 +39,9 @@ The local app expects an authenticated session. Keep `backend/.env` private and 
 
 - The API accepts up to four photos per stream; the upload page supports up to four.
 - Demo processors are fictional and have no checked authorization references. Hazardous and e-waste routing is therefore restricted by the guardrails.
-- Rule rows are marked with their verification basis; none is fully source-verified yet.
-- The evaluation set currently covers cardboard, paper, and a broad metal-scrap family. It does not validate hazardous or storage-device classification, and no evaluation output is checked in.
-- Some emission factors are illustrative. Dataset licensing and attribution should be confirmed before broader distribution.
+- Rule rows retain verification-basis labels. E-waste, battery, plastic, and solid-waste statements were checked against current official texts during this review. Scope questions and rules for hazardous waste remain subject to case-specific human review.
+- The evaluation labels 31 photos: cardboard (10), paper (10), and broad metal-scrap family (11). It does not validate hazardous or storage-device classification, and no live evaluation output is checked in.
+- Some emission factors and transport assumptions are illustrative. TrashNet source and MIT attribution are recorded in `dataset-resized/README.md` and `dataset-resized/LICENSE`.
 - The frontend uses public map tiles and routing services; review their availability and usage terms before production use.
 
 ## Local validation
@@ -63,15 +63,18 @@ The vision evaluation makes live model calls and requires a working provider con
 .\.venv\Scripts\python eval/run_eval.py
 ```
 
-Record the evaluation output before using it to support accuracy or confidence claims. Expand the labeled set to include e-waste, batteries, used oil, and hazard/storage-device flags before treating it as a broad waste-classification evaluation.
+No model API key was configured during the 11 October 2026 review, so the live evaluation could not run and no accuracy or confidence result is available. Record output before making such claims. Expand the reviewed labels to include e-waste, batteries, used oil, and hazard/storage-device flags before treating it as a broad waste-classification evaluation.
 
 ## Work to complete before AWS deployment
 
-1. Run the backend tests, frontend tests, and frontend production build locally.
-2. Run the vision evaluation with an available model account, save the result, and expand its labels and checks.
-3. Verify rule text and amendments against official sources; record citations and review dates.
-4. Replace or clearly retain demo-only processor data; verify authorization references and dates for any real routing.
-5. Confirm dataset licenses and attribution, and keep demo assumptions visible in the UI and reports.
-6. Review the local authenticated upload-to-result, routing, review, handoff, and PDF flows.
+Completed on 11 October 2026: the frontend tests (8 passed) and production build; the non-AWS backend suite (223 passed; `tests/test_aws.py` excluded); and authenticated local API coverage for upload, routing, review, handoff and reports. Product and dataset assumptions remain visible in the docs.
+
+Remaining non-AWS readiness items:
+
+1. Run the live vision evaluation with a configured model account and expand the reviewed labels. No API key was present during this review.
+2. Keep every hazardous-waste row under human review until its specific rules and applicability are reviewed for a real waste stream.
+3. Supply verified processor identities, current authorization references and check dates before enabling real routing. All current processor records are fictional demo rows.
+4. Replace the unsourced paper/cardboard emission estimates, transport cost and transport-emissions assumptions before using the resulting savings or value as real-world estimates.
+5. Add and review more waste classes and hazard/storage examples before making broad classification claims.
 
 AWS deployment is a separate phase. The SAM template and AWS adapters are implementation artifacts, not evidence of a successful live deployment.

@@ -50,7 +50,8 @@ def test_battery_routes_are_reviewed_without_claiming_every_battery_is_hazardous
         assert "as amended through 2025" in result["rule_name"]
         assert "r. 5" in result["section_ref"]
         assert result["review_required"] is True
-        assert result["verified"] is False
+        assert result["verified"] is True
+        assert "P" in result["basis"] and "M" not in result["basis"]
         assert any("not a legal classification" in text for text in result["key_requirements"])
 
 

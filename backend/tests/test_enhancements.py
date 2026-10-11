@@ -130,6 +130,7 @@ def test_wipe_requires_certificate_ref_and_operator():
             ewaste.record_drive_wipe(storage, "s", batch, d, "overwrite", "C-1", "ann")
         assert ewaste.blocking_reasons(batch) == []
         assert len(storage.get_ledger_chain("s")) == 3
+        storage.close()
 
 
 # --- endpoints: review, handoff gate, dashboard ---

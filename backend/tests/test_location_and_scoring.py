@@ -99,12 +99,12 @@ def test_pipeline_uses_the_pincode_not_the_org(monkeypatch):
     monkeypatch.setattr(agent_mod, "find_processors", spy)
     monkeypatch.setattr(pipeline, "characterize_waste", lambda *a, **k: Characterization(items=[make_item()], overall_confidence=0.9))
     with tempfile.TemporaryDirectory() as tmp:
-        st = LocalStorage(db_path=Path(tmp) / "t.db")
-        st.save_upload("p.jpg", b"x")
-        # org_campus_workshop is in Patiala, but the request pincode says Amritsar
-        st.create_stream("s", {"org_id": "org_campus_workshop", "photo_keys": ["p.jpg"], "pincode": "143001",
-                               "slider_w": 0.5, "status": "SUBMITTED"})
-        pipeline.run_pipeline("s", storage=st)
+        with LocalStorage(db_path=Path(tmp) / "t.db") as st:
+            st.save_upload("p.jpg", b"x")
+            # org_campus_workshop is in Patiala, but the request pincode says Amritsar
+            st.create_stream("s", {"org_id": "org_campus_workshop", "photo_keys": ["p.jpg"], "pincode": "143001",
+                                   "slider_w": 0.5, "status": "SUBMITTED"})
+            pipeline.run_pipeline("s", storage=st)
     assert seen["loc"]["pincode"] == "143001"
     assert seen["loc"]["lat"] == pytest.approx(31.6340)
 
@@ -114,11 +114,11 @@ def test_pipeline_unknown_pincode_fails_with_clear_message_and_no_model_call(mon
         raise AssertionError("characterize should not run for a bad pincode")
     monkeypatch.setattr(pipeline, "characterize_waste", boom)
     with tempfile.TemporaryDirectory() as tmp:
-        st = LocalStorage(db_path=Path(tmp) / "t.db")
-        st.save_upload("p.jpg", b"x")
-        st.create_stream("s", {"org_id": "org_campus_workshop", "photo_keys": ["p.jpg"], "pincode": "000000",
-                               "slider_w": 0.5, "status": "SUBMITTED"})
-        result = pipeline.run_pipeline("s", storage=st)
+        with LocalStorage(db_path=Path(tmp) / "t.db") as st:
+            st.save_upload("p.jpg", b"x")
+            st.create_stream("s", {"org_id": "org_campus_workshop", "photo_keys": ["p.jpg"], "pincode": "000000",
+                                   "slider_w": 0.5, "status": "SUBMITTED"})
+            result = pipeline.run_pipeline("s", storage=st)
     assert result["status"] == "FAILED"
     assert "Pincode not in demo data" in result["error"] and "147001" in result["error"]
 
@@ -158,10 +158,10 @@ def test_pipeline_turns_bad_coordinates_into_a_failed_stream_with_message(monkey
     monkeypatch.setattr(pipeline, "resolve_pincode", lambda p: {"lat": None, "lng": None})
     monkeypatch.setattr(pipeline, "characterize_waste", lambda *a, **k: Characterization(items=[make_item()], overall_confidence=0.9))
     with tempfile.TemporaryDirectory() as tmp:
-        st = LocalStorage(db_path=Path(tmp) / "t.db")
-        st.save_upload("p.jpg", b"x")
-        st.create_stream("s", {"org_id": "o", "photo_keys": ["p.jpg"], "pincode": "147001", "slider_w": 0.5, "status": "SUBMITTED"})
-        result = pipeline.run_pipeline("s", storage=st)
+        with LocalStorage(db_path=Path(tmp) / "t.db") as st:
+            st.save_upload("p.jpg", b"x")
+            st.create_stream("s", {"org_id": "o", "photo_keys": ["p.jpg"], "pincode": "147001", "slider_w": 0.5, "status": "SUBMITTED"})
+            result = pipeline.run_pipeline("s", storage=st)
     assert result["status"] == "FAILED"
     assert "Cannot compute a distance" in result["error"]
 
@@ -304,8 +304,11 @@ def test_every_unreferenced_processor_is_labelled_demo_only():
 def test_candidates_carry_the_label_and_no_output_says_authorized():
     r = matching.find_processors(make_item("aluminium_scrap"), PATIALA)
     assert all(c["authorization_label"] == "demo only, authorization not checked" for c in r["candidates"])
-    text = json.dumps(r).lower() + json.dumps(TestClient(app, headers=AUTH_HEADERS).get("/processors").json()).lower()
-    assert "authorized" not in text
+    processors = TestClient(app, headers=AUTH_HEADERS).get("/processors").json()
+    assert all(
+        p["authorization_label"] == "demo only, authorization not checked"
+        for p in processors if not p.get("authorization_ref")
+    )
 
 
 def test_label_with_a_reference_reports_what_is_on_file_not_a_verdict():

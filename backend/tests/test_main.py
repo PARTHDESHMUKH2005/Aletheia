@@ -120,7 +120,7 @@ def test_draft_message_is_never_sent_and_is_recorded(monkeypatch):
     import httpx
     def fail_if_outbound(*a, **k):
         raise AssertionError("draft-message endpoint must never make an outbound call")
-    monkeypatch.setattr(httpx.Client, "send", fail_if_outbound)
+    monkeypatch.setattr(httpx.HTTPTransport, "handle_request", fail_if_outbound)
 
     resp = client.post(f"/streams/{stream_id}/draft-message", params={"processor_id": processor_id})
     assert resp.status_code == 200

@@ -18,7 +18,11 @@ from tests.test_pipeline import make_characterization, seed_stream
 @pytest.fixture
 def storage():
     with tempfile.TemporaryDirectory() as tmp:
-        yield LocalStorage(db_path=Path(tmp) / "t.db")
+        store = LocalStorage(db_path=Path(tmp) / "t.db")
+        try:
+            yield store
+        finally:
+            store.close()
 
 
 def make_ctx(storage, characterization):
