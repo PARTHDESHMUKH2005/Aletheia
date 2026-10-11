@@ -1,5 +1,6 @@
 from app.models import Characterization, Item
 from app.tools import characterize
+import pytest
 
 
 class FakeStorage:
@@ -96,7 +97,7 @@ def test_image_hash_is_order_sensitive_and_stable():
     assert characterize.compute_image_hash(a) == characterize.compute_image_hash(a)
 
 
-def test_more_than_max_photos_is_truncated(monkeypatch):
+def test_more_than_max_photos_is_rejected_without_model_call(monkeypatch):
     seen_prompts = []
 
     def fake_run_model(tier, prompt):
@@ -106,7 +107,6 @@ def test_more_than_max_photos_is_truncated(monkeypatch):
     monkeypatch.setattr(characterize, "_run_model", fake_run_model)
 
     photos = [{"format": "jpeg", "bytes": f"p{i}".encode()} for i in range(6)]
-    characterize.characterize_waste(photos=photos, storage=FakeStorage())
-
-    image_blocks = [b for b in seen_prompts[0] if "image" in b]
-    assert len(image_blocks) == characterize.MAX_PHOTOS
+    with pytest.raises(ValueError, match="at most"):
+        characterize.characterize_waste(photos=photos, storage=FakeStorage())
+    assert not seen_prompts

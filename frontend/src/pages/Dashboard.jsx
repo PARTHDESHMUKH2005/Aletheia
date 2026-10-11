@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api.js";
-import { ORGS } from "../orgs.js";
+import { useSession } from "../components/Session.jsx";
 
 const inr = (v) => `₹${Number(v).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
@@ -25,14 +25,17 @@ function Stat({ label, value, sub }) {
 }
 
 export default function Dashboard() {
+  const { orgs: ORGS } = useSession();
   const [orgId, setOrgId] = useState(ORGS[0].id);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let cancelled = false;
     setError(null);
     setData(null);
-    api.getDashboard(orgId).then(setData).catch((err) => setError(err.message));
+    api.getDashboard(orgId).then((value) => !cancelled && setData(value)).catch((err) => !cancelled && setError(err.message));
+    return () => { cancelled = true; };
   }, [orgId]);
 
   const p = data?.revenue_inr.projected;

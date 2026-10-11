@@ -90,6 +90,8 @@ def run_pipeline(stream_id: str, storage=None) -> dict:
             picked_id = routed_processor_id(routing_result)
             if picked_id is not None:
                 hand_off(ctx, index, picked_id)
+            else:
+                needs_review = True
 
         timings["routing_ms"] = int((time.monotonic() - t1) * 1000)
 

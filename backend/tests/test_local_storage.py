@@ -1,4 +1,6 @@
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from pathlib import Path
 
 import pytest
@@ -36,3 +38,24 @@ def test_cache_roundtrip(storage):
     assert storage.get_cached_characterization("sha123") is None
     storage.set_cached_characterization("sha123", {"items": [], "overall_confidence": 0.5})
     assert storage.get_cached_characterization("sha123") == {"items": [], "overall_confidence": 0.5}
+
+
+def test_concurrent_photo_uploads_publish_one_complete_file(storage):
+    barrier = Barrier(2)
+    versions = (b"a" * 100_000, b"b" * 100_000)
+
+    def upload(data):
+        barrier.wait(timeout=10)
+        try:
+            storage.save_upload("org/photo.jpg", data)
+            return data
+        except FileExistsError:
+            return None
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(upload, data) for data in versions]
+        outcomes = [future.result(timeout=15) for future in futures]
+    winners = [outcome for outcome in outcomes if outcome is not None]
+    assert len(winners) == 1
+    assert storage.read_upload("org/photo.jpg") == winners[0]
+    assert not list(storage.uploads_dir.rglob(".upload-*"))

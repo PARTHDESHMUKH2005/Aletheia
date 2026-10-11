@@ -1,0 +1,4 @@
+-r requirements.txt
+moto[dynamodb,s3]>=5,<7
+pypdf>=6,<8
+aws-sam-translator>=1,<2

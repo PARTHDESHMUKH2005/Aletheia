@@ -1,1 +1,163 @@
-# AWS SAM template. Built out in Phase 3 (BUILD.md section 9).
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: LoopBack API, asynchronous worker, private uploads and DynamoDB storage
+
+Parameters:
+  GeminiApiKey:
+    Type: String
+    NoEcho: true
+  ApiTokensJson:
+    Type: String
+    NoEcho: true
+    Description: JSON array of bearer credentials with subject, role and org_ids (see README)
+  FrontendOrigin:
+    Type: String
+    Default: http://localhost:5173
+    AllowedPattern: "https?://[^/]+"
+  ModelFast: {Type: String, Default: gemini-3.8-flash}
+  ModelStrong: {Type: String, Default: gemini-pro-latest}
+  ModelOrch: {Type: String, Default: gemini-3.8-flash}
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [arm64]
+    CodeUri: ../backend/
+    Environment:
+      Variables:
+        STORAGE: aws
+        ENV: production
+        LLM_PROVIDER: gemini
+        MODEL_FAST: !Ref ModelFast
+        MODEL_STRONG: !Ref ModelStrong
+        MODEL_ORCH: !Ref ModelOrch
+        BUCKET: !Ref UploadBucket
+        STREAMS_TABLE: !Ref StreamsTable
+        LEDGER_TABLE: !Ref LedgerTable
+        CACHE_TABLE: !Ref CacheTable
+
+Resources:
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: [!Ref FrontendOrigin]
+        AllowHeaders: [Authorization, Content-Type]
+        AllowMethods: [GET, PUT, POST, OPTIONS]
+      DefaultRouteSettings: {ThrottlingBurstLimit: 20, ThrottlingRateLimit: 10}
+  UploadBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault: {SSEAlgorithm: AES256}
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [PUT]
+            AllowedOrigins: [!Ref FrontendOrigin]
+            AllowedHeaders: [Content-Type, If-None-Match]
+      LifecycleConfiguration:
+        Rules:
+          - {Id: expire-demo-photos, Status: Enabled, ExpirationInDays: 14}
+  StreamsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: stream_id, AttributeType: S}
+        - {AttributeName: org_id, AttributeType: S}
+      KeySchema:
+        - {AttributeName: stream_id, KeyType: HASH}
+      GlobalSecondaryIndexes:
+        - IndexName: org-index
+          KeySchema:
+            - {AttributeName: org_id, KeyType: HASH}
+            - {AttributeName: stream_id, KeyType: RANGE}
+          Projection: {ProjectionType: ALL}
+      SSESpecification: {SSEEnabled: true}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+  LedgerTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: chain_id, AttributeType: S}
+        - {AttributeName: link_no, AttributeType: N}
+      KeySchema:
+        - {AttributeName: chain_id, KeyType: HASH}
+        - {AttributeName: link_no, KeyType: RANGE}
+      SSESpecification: {SSEEnabled: true}
+      PointInTimeRecoverySpecification: {PointInTimeRecoveryEnabled: true}
+  CacheTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - {AttributeName: image_sha, AttributeType: S}
+      KeySchema:
+        - {AttributeName: image_sha, KeyType: HASH}
+      TimeToLiveSpecification: {AttributeName: ttl, Enabled: true}
+  PipelineFunction:
+    Type: AWS::Serverless::Function
+    Metadata: {BuildMethod: makefile}
+    Properties:
+      Handler: app.lambda_pipeline.handler
+      Timeout: 180
+      MemorySize: 1536
+      Environment:
+        Variables:
+          GEMINI_API_KEY: !Ref GeminiApiKey
+          USE_AGENT: "true"
+      EventInvokeConfig: {MaximumRetryAttempts: 0}
+      Policies:
+        - DynamoDBCrudPolicy: {TableName: !Ref StreamsTable}
+        - DynamoDBCrudPolicy: {TableName: !Ref LedgerTable}
+        - DynamoDBCrudPolicy: {TableName: !Ref CacheTable}
+        - S3ReadPolicy: {BucketName: !Ref UploadBucket}
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Metadata: {BuildMethod: makefile}
+    Properties:
+      Handler: app.lambda_api.handler
+      Timeout: 29
+      MemorySize: 512
+      Environment:
+        Variables:
+          API_TOKENS_JSON: !Ref ApiTokensJson
+          FRONTEND_ORIGIN: !Ref FrontendOrigin
+          PIPELINE_FN: !Ref PipelineFunction
+      Policies:
+        - DynamoDBCrudPolicy: {TableName: !Ref StreamsTable}
+        - DynamoDBCrudPolicy: {TableName: !Ref LedgerTable}
+        - S3CrudPolicy: {BucketName: !Ref UploadBucket}
+        - LambdaInvokePolicy: {FunctionName: !Ref PipelineFunction}
+      Events:
+        Root:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: /, Method: ANY}
+        Proxy:
+          Type: HttpApi
+          Properties: {ApiId: !Ref HttpApi, Path: "/{proxy+}", Method: ANY}
+  ApiLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ApiFunction}"
+      RetentionInDays: 7
+  PipelineLogs:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${PipelineFunction}"
+      RetentionInDays: 7
+
+Outputs:
+  ApiUrl:
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  BucketName:
+    Value: !Ref UploadBucket
+  PipelineFunctionName:
+    Value: !Ref PipelineFunction

@@ -1,3 +1,4 @@
+from tests.helpers import AUTH_HEADERS, JPEG_BYTES
 """Pincode lookup, hard-fail distance, fixed-scale scoring, distance cap, authorization labels."""
 import json
 import socket
@@ -123,7 +124,7 @@ def test_pipeline_unknown_pincode_fails_with_clear_message_and_no_model_call(mon
 
 
 def test_api_rejects_unknown_and_missing_pincode_with_422():
-    client = TestClient(app)
+    client = TestClient(app, headers=AUTH_HEADERS)
     for body in ({"pincode": "000000"}, {}):
         resp = client.post("/streams", json={"org_id": "org_campus_workshop", "photo_keys": ["x.jpg"], **body})
         assert resp.status_code == 422
@@ -292,7 +293,7 @@ def test_seeded_recovery_rates_are_in_realistic_band_and_labelled():
 # ---------- 5. authorization labels ----------
 
 def test_every_unreferenced_processor_is_labelled_demo_only():
-    client = TestClient(app)
+    client = TestClient(app, headers=AUTH_HEADERS)
     rows = client.get("/processors").json()
     assert rows
     for row in rows:
@@ -303,7 +304,7 @@ def test_every_unreferenced_processor_is_labelled_demo_only():
 def test_candidates_carry_the_label_and_no_output_says_authorized():
     r = matching.find_processors(make_item("aluminium_scrap"), PATIALA)
     assert all(c["authorization_label"] == "demo only, authorization not checked" for c in r["candidates"])
-    text = json.dumps(r).lower() + json.dumps(TestClient(app).get("/processors").json()).lower()
+    text = json.dumps(r).lower() + json.dumps(TestClient(app, headers=AUTH_HEADERS).get("/processors").json()).lower()
     assert "authorized" not in text
 
 

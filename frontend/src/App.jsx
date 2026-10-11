@@ -7,11 +7,12 @@ import Verify from "./pages/Verify.jsx";
 import Review from "./pages/Review.jsx";
 import Passport from "./pages/Passport.jsx";
 import AppLayout from "./components/AppLayout.jsx";
+import Session from "./components/Session.jsx";
 import "./styles/passport.css";
 
 export default function App() {
   return (
-    <AppLayout>
+    <Session><AppLayout>
         <Routes>
           <Route path="/" element={<Upload />} />
           <Route path="/streams/:streamId" element={<Result />} />
@@ -23,6 +24,6 @@ export default function App() {
           <Route path="/verify" element={<Verify />} />
           <Route path="/verify/:chainId" element={<Verify />} />
         </Routes>
-    </AppLayout>
+    </AppLayout></Session>
   );
 }

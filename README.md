@@ -2,7 +2,7 @@
 
 # ♻️ LoopBack
 
-### Snap a photo of waste. Get the best buyer, the money earned and the CO₂ saved, with a tamper-proof record.
+### Snap a photo of waste. Compare buyers, projected money and CO₂ savings, with a verifiable record.
 
 *An AI agent that turns waste into a routed, auditable, carbon-aware transaction.*
 
@@ -81,7 +81,7 @@ The **Impact Dashboard** aggregates this across an organization's streams. The l
 |---|---|
 | **AI / Agent** | Gemini (vision characterization), Strands Agents |
 | **Backend** | Python, FastAPI, Pydantic, Uvicorn |
-| **Cloud** | AWS Lambda via Mangum, boto3 (the SAM template in `infra/` is still a stub) |
+| **Cloud** | AWS Lambda via Mangum, asynchronous worker, DynamoDB, private S3 and SAM |
 | **Frontend** | React 18, Vite, Tailwind CSS, React Router, Leaflet maps |
 | **Integrity** | SHA-256 hash-chained ledger |
 | **Reports** | ReportLab (PDF) |
@@ -90,24 +90,47 @@ The **Impact Dashboard** aggregates this across an organization's streams. The l
 ## 🚀 Quick start
 
 ```bash
-# Backend
+# From the repository root (Python 3.11+)
+python3 -m venv .venv
+.venv/bin/python -m pip install -r backend/requirements-dev.txt
+cp backend/.env.example backend/.env
+# Generates a random local administrator credential. Keep this file private.
+.venv/bin/python scripts/create_credentials.py --env-assignment >> backend/.env
+# Set GEMINI_API_KEY and your account's model IDs in backend/.env.
 cd backend
-pip install -r requirements.txt
-export GEMINI_API_KEY=your_key        # Gemini is the default provider
-uvicorn app.main:app --reload
+../.venv/bin/python -m uvicorn app.main:app --reload
 
-# Frontend (new terminal)
+# Frontend (new terminal, from repository root; Node 20+)
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 
-Open the Vite URL, upload a photo and use a demo pincode such as `147001` (Patiala) or `110001` (Delhi).
+Open the Vite URL and sign in using the `token` value from `API_TOKENS_JSON` in `backend/.env`. Upload a photo with a demo pincode such as `147001` (Patiala) or `110001` (Delhi). The same-origin demo at `http://localhost:8000/demo/` also accepts this credential. Sliding previews a route; **Save routing choice** persists it for pickup, passports and dashboards.
+
+`API_TOKENS_JSON` is a JSON array of `{token, subject, role, org_ids}` entries. `operator` can submit and record handoffs; `reviewer` can also review and record wipe certificates; `admin` can also use the local tamper demo. Each role is restricted to its listed organizations. The generator supports `--role`, `--subject` and repeated `--org` options. A missing or malformed credential configuration denies private access. Only processor/scoring data and ledger verification are public. Browser credentials stay in the current tab's session; never embed them in a frontend build.
 
 ```bash
-# Tests
-cd backend && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest
+# From repository root
+cd backend
+../.venv/bin/python -m pytest -q
+# New terminal, repository root
+cd frontend
+npm test
+npm run build
 ```
+
+Tests isolate SQLite data and mock AI/AWS calls. AWS storage tests use Moto; the SAM template is transformed offline. A deployed AWS account and live AI model have not been exercised by those tests.
+
+### AWS setup
+
+`infra/template.yaml` defines an HTTP API, two Lambda functions, DynamoDB tables and a private S3 upload bucket. From `infra/`, run `sam build --use-container` and then `sam deploy --guided`; supply `GeminiApiKey`, `ApiTokensJson`, `FrontendOrigin` and model IDs. The custom build copies only application code and runtime dependencies, excluding `.env`, test data and local uploads. Deploying creates billable resources. Set `VITE_API_URL` to the stack's `ApiUrl` before building the frontend, and configure `FrontendOrigin` to its exact web origin. The worker receives a stream ID asynchronously and preserves time to record a timeout failure. Uploaded cloud photos expire after 14 days.
+
+### Existing local records
+
+New ledger entries use hash format 2, which covers event type, chain identity, link number, time, payload and previous hash. Existing format-1 chains remain unchanged and readable, but show as unverified and cannot accept mutations. Export them for reference and resubmit photos to create a new record; no automatic rehash asserts their integrity. Old unscoped photo keys are private and must be uploaded again under an organization. Hash verification detects edits to retained records; it does not independently verify a handoff or protect against replacement or deletion of an entire chain by a database owner.
+
+Photos are uploaded once per key: a second local PUT returns 409, and cloud PUTs require the signed `If-None-Match: *` header. Request a new upload target for a different photo. Handoff statuses advance strictly forward per item; duplicates and backward steps return 409, and verification finalizes the measured weight. Review reclassification resets obsolete hazard/storage flags, enforces flags required by the corrected material, and accepts explicit `hazardous` and `is_storage_device` flags for contamination or installed storage. It still requires a separate routing confirmation.
 
 ## 📚 Documentation
 

@@ -11,11 +11,11 @@ from app.config import get_model, get_retry_strategy, get_settings
 from strands.types.exceptions import MaxTokensReachedException
 
 from app.models import Characterization
+from app.uploads import MAX_PHOTOS
 
 logger = logging.getLogger("loopback.characterize")
 
 CONFIDENCE_ESCALATION_THRESHOLD = 0.7
-MAX_PHOTOS = 4
 
 
 class PhotoBlock(TypedDict):
@@ -23,10 +23,15 @@ class PhotoBlock(TypedDict):
     bytes: bytes
 
 
-def compute_image_hash(photos: list[PhotoBlock]) -> str:
-    """sha256 over the resized image bytes, in submission order. Cache key for repeat demos."""
-    hasher = hashlib.sha256()
+def compute_image_hash(photos: list[PhotoBlock], note: str = "", quantity_kg: float | None = None) -> str:
+    """Versioned key covering every prompt input and the configured models."""
+    settings = get_settings()
+    hasher = hashlib.sha256(json.dumps({"version": 2, "note": note, "quantity_kg": quantity_kg,
+        "provider": settings.llm_provider, "fast": settings.model_fast, "strong": settings.model_strong},
+        sort_keys=True, allow_nan=False).encode())
     for photo in photos:
+        hasher.update(photo["format"].encode())
+        hasher.update(len(photo["bytes"]).to_bytes(8, "big"))
         hasher.update(photo["bytes"])
     return hasher.hexdigest()
 
@@ -76,17 +81,20 @@ def characterize_waste(
 ) -> Characterization:
     """All photos for one stream go into a single call (max 4). Cheap model first;
     if overall_confidence < 0.7, run the strong model once. Never loops. Cached by
-    sha256 of the combined image bytes, so repeat demos cost nothing.
+    a versioned hash of photos, note, quantity, provider and model IDs.
     """
     if not photos:
         raise ValueError("characterize_waste requires at least one photo")
-    photos = photos[:MAX_PHOTOS]
+    if len(photos) > MAX_PHOTOS:
+        raise ValueError(f"at most {MAX_PHOTOS} photos are supported")
+    if quantity_kg is not None and (not isinstance(quantity_kg, (int, float)) or not 0 < quantity_kg < float("inf")):
+        raise ValueError("quantity_kg must be finite and positive")
 
     if storage is None:
         from app.config import get_storage
         storage = get_storage()
 
-    image_hash = compute_image_hash(photos)
+    image_hash = compute_image_hash(photos, note, quantity_kg)
     cached = storage.get_cached_characterization(image_hash)
     if cached is not None:
         logger.info(json.dumps({"step": "characterize", "cache_hit": True, "image_sha": image_hash}))
@@ -95,12 +103,13 @@ def characterize_waste(
     prompt = _build_prompt(photos, note, quantity_kg)
     try:
         characterization = _run_model("fast", prompt)
-        if characterization.overall_confidence < CONFIDENCE_ESCALATION_THRESHOLD:
-            characterization = _run_model("strong", prompt)
     except MaxTokensReachedException:
         # The cheap tier ran out of output budget; the stronger tier has more. Still one retry, never a loop.
         logger.info(json.dumps({"step": "characterize", "max_tokens_retry": True}))
         characterization = _run_model("strong", prompt)
+    else:
+        if characterization.overall_confidence < CONFIDENCE_ESCALATION_THRESHOLD:
+            characterization = _run_model("strong", prompt)
 
     storage.set_cached_characterization(image_hash, characterization.model_dump())
     return characterization

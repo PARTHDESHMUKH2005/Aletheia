@@ -63,7 +63,7 @@ def register_devices(existing: dict | None, devices: list[dict]) -> dict:
 
 
 def record_drive_wipe(storage, stream_id: str, batch: dict, drive_id: str, method: str,
-                      certificate_ref: str, operator: str) -> dict:
+                      certificate_ref: str, operator: str, *, actor: str | None = None) -> dict:
     """Stores the wipe/destruction record on the drive and appends a ledger event."""
     drive = next((d for d in batch["drives"] if d["drive_id"] == drive_id), None)
     if drive is None:
@@ -78,7 +78,7 @@ def record_drive_wipe(storage, stream_id: str, batch: dict, drive_id: str, metho
     }
     ledger.append(storage, stream_id, event="data_wipe_confirmed", payload={
         "drive_id": drive_id, "method": method, "certificate_ref": certificate_ref.strip(),
-        "operator": operator.strip(),
+        "operator": operator.strip(), "actor": actor, "note": RECORD_NOTE,
     })
     return drive
 

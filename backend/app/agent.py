@@ -109,7 +109,7 @@ def hand_off(ctx: RunContext, index: int, processor_id: str) -> dict:
     if index in ctx.handed_off:
         return {"already_recorded": True}
     item = ctx.characterization.items[index]
-    entry = record_handoff(ctx.storage, ctx.stream_id, processor_id, "requested", item)
+    entry = record_handoff(ctx.storage, ctx.stream_id, processor_id, "requested", item, item_index=index)
     ctx.handed_off.add(index)
     return entry
 
@@ -117,7 +117,7 @@ def hand_off(ctx: RunContext, index: int, processor_id: str) -> dict:
 def routed_processor_id(routing: dict) -> str | None:
     if routing.get("refused"):
         return None
-    return routing.get("picked_processor_id") or routing.get("reuse_recommended_processor_id")
+    return routing.get("reuse_recommended_processor_id") or routing.get("picked_processor_id")
 
 
 def _compact_item(index: int, item) -> dict:

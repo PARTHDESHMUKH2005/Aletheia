@@ -13,24 +13,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "backend"))
 
 
-def _load_dotenv(path: Path) -> None:
-    if not path.exists():
-        return
-    for line in path.read_text().splitlines():
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, _, value = line.partition("=")
-        import os
-        os.environ.setdefault(key.strip(), value.strip())
-
-
-_load_dotenv(ROOT / ".env")
-
 from app.storage.local import LocalStorage  # noqa: E402
 from app.pipeline import run_pipeline  # noqa: E402
 from app.tools import ledger, matching  # noqa: E402
 from app.models import Item  # noqa: E402
+from app.uploads import validate_image  # noqa: E402
 
 
 def section(title: str) -> None:
@@ -46,8 +33,11 @@ def main() -> None:
     storage = LocalStorage(db_path=ROOT / ".local_data" / "demo.db")
     stream_id = f"demo-{uuid.uuid4().hex[:8]}"
 
-    photo_key = f"{stream_id}-{photo_path.name}"
-    storage.save_upload(photo_key, photo_path.read_bytes())
+    photo_bytes = photo_path.read_bytes()
+    mime = validate_image(photo_bytes)
+    extension = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp"}[mime]
+    photo_key = f"org_campus_workshop/{uuid.uuid4().hex}.{extension}"
+    storage.save_upload(photo_key, photo_bytes)
     storage.create_stream(stream_id, {
         "org_id": "org_campus_workshop",
         "pincode": "147001",

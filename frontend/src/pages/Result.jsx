@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api.js";
 import { rememberStream } from "../lib/recent.js";
+import { handoffStatus, canAdvanceHandoff } from "../lib/handoff.js";
 import ComplianceCard from "../components/ComplianceCard.jsx";
 import ContaminationMeter from "../components/ContaminationMeter.jsx";
+import { useSession } from "../components/Session.jsx";
 
 const STATUS_STYLE = {
   ROUTED: "bg-green-100 text-green-800",
@@ -23,10 +25,18 @@ function StatusBadge({ status }) {
 
 export default function Result() {
   const { streamId } = useParams();
+  const { principal } = useSession();
+  const canReview = principal?.role === "reviewer" || principal?.role === "admin";
   const [stream, setStream] = useState(null);
   const [error, setError] = useState(null);
   const [w, setW] = useState(0.5);
   const [ev, setEv] = useState(0);
+  const [itemIndex, setItemIndex] = useState(0);
+  const [saveBusy, setSaveBusy] = useState(false);
+  const [weightKg, setWeightKg] = useState("");
+  const [handoffBusy, setHandoffBusy] = useState(false);
+  const savingRef = useRef(false);
+  const handoffRef = useRef(false);
   const [ewaste, setEwaste] = useState(null);
   const [ewasteError, setEwasteError] = useState(null);
   const [handoffMsg, setHandoffMsg] = useState(null);
@@ -45,13 +55,16 @@ export default function Result() {
   useEffect(() => { if (streamId) rememberStream(streamId); }, [streamId]);
   useEffect(() => { api.listProcessors().then(setProcessors).catch(() => {}); }, []);
 
-  async function handleWipe() {
+  async function handleWipe(event) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
     if (wipePendingRef.current) return;
     wipePendingRef.current = true;
     setWipeBusy(true);
     setWipeError(null);
     try {
-      await api.confirmWipe(streamId);
+      await api.confirmWipe(streamId, { item_index: itemIndex, method: form.get("method"),
+        certificate_ref: form.get("certificate_ref"), operator: form.get("operator") });
       try {
         setStream(await api.getStream(streamId));
       } catch (err) {
@@ -72,7 +85,7 @@ export default function Result() {
     setDraftError(null);
     setDraft(null);
     try {
-      setDraft(await api.draftPickupMessage(streamId, processorId));
+      setDraft(await api.draftPickupMessage(streamId, processorId, itemIndex));
       try {
         setStream(await api.getStream(streamId));
       } catch (err) {
@@ -88,6 +101,7 @@ export default function Result() {
 
   useEffect(() => {
     let cancelled = false;
+    setItemIndex(0); setStream(null); setRoute(null); setError(null);
 
     async function poll() {
       try {
@@ -109,16 +123,32 @@ export default function Result() {
   }, [streamId]);
 
   useEffect(() => {
+    const saved = stream?.routing?.[itemIndex];
+    setW(saved?.slider_w ?? 0.5); setEv(saved?.evidence_weight ?? 0);
+    setDraft(null); setWeightKg("");
+  }, [itemIndex, streamId, Boolean(stream?.characterization)]);
+
+  useEffect(() => {
     if (!stream?.characterization) return;
     let cancelled = false;
     api
-      .getRoute(streamId, w, 0, ev)
+      .getRoute(streamId, w, itemIndex, ev)
       .then((r) => !cancelled && (setRoute(r), setRouteError(null)))
       .catch((err) => !cancelled && setRouteError(err.message));
     return () => {
       cancelled = true;
     };
-  }, [stream?.characterization, streamId, w, ev]);
+  }, [stream?.characterization, streamId, w, ev, itemIndex]);
+
+  async function saveRouting() {
+    if (savingRef.current) return;
+    savingRef.current = true; setSaveBusy(true); setRouteError(null);
+    try {
+      setRoute(await api.saveRoute(streamId, w, itemIndex, ev));
+      setStream(await api.getStream(streamId));
+    } catch (err) { setRouteError(err.message); }
+    finally { savingRef.current = false; setSaveBusy(false); }
+  }
 
   useEffect(() => {
     if (!stream?.characterization) return;
@@ -154,21 +184,31 @@ export default function Result() {
   }
 
   async function handoff(status) {
+    if (handoffRef.current) return;
+    handoffRef.current = true; setHandoffBusy(true);
     setHandoffMsg(null);
     try {
-      await api.advanceHandoff(streamId, { status });
+      await api.advanceHandoff(streamId, { status, item_index: itemIndex,
+        ...((status === "weighed" || status === "verified") && weightKg ? { weight_kg: Number(weightKg) } : {}) });
       setStream(await api.getStream(streamId));
     } catch (err) {
       setHandoffMsg(err.message);
-    }
+    } finally { handoffRef.current = false; setHandoffBusy(false); }
   }
 
   if (error) return <div className="text-sm text-red-600">{error}</div>;
   if (!stream) return <div className="text-sm text-gray-500">Loading...</div>;
 
-  const item = stream.characterization?.items?.[0];
+  const item = stream.characterization?.items?.[itemIndex];
+  const handoffState = handoffStatus(stream.ledger, itemIndex, stream.characterization?.items?.length ?? 0);
   const isStorageDevice = item?.is_storage_device;
-  const wiped = stream.ledger?.some((e) => e.event === "data_wipe_confirmed");
+  const wiped = stream.ledger?.some((e) => {
+    try { return e.event === "data_wipe_confirmed" && JSON.parse(e.payload_json).item_index === itemIndex; }
+    catch { return false; }
+  });
+  const selectedId = route?.routing?.reuse_recommended_processor_id || route?.routing?.picked_processor_id;
+  const savedRoute = stream.routing?.[itemIndex];
+  const routeDirty = w !== (savedRoute?.slider_w ?? 0.5) || ev !== (savedRoute?.evidence_weight ?? 0);
 
   return (
     <div className="space-y-5 max-w-xl">
@@ -177,6 +217,12 @@ export default function Result() {
         <div className="mt-1"><StatusBadge status={stream.status} /></div>
         {stream.error && <div className="text-sm text-red-600 mt-2">{stream.error}</div>}
       </div>
+
+      {stream.characterization?.items?.length > 1 && <label className="block text-sm">Item
+        <select className="border rounded p-2 ml-2" value={itemIndex} onChange={(e) => setItemIndex(Number(e.target.value))}>
+          {stream.characterization.items.map((it, index) => <option key={index} value={index}>{index + 1}: {it.material}</option>)}
+        </select>
+      </label>}
 
       {item && (
         <div className="border rounded-lg p-4 bg-white">
@@ -189,16 +235,19 @@ export default function Result() {
             <div className="mt-2 text-sm">
               Storage device: {wiped ? (
                 <span className="text-green-700">wipe confirmed</span>
-              ) : (
-                <button
-                  className="underline text-blue-700 disabled:opacity-40"
-                  disabled={wipeBusy}
-                  aria-busy={wipeBusy}
-                  onClick={handleWipe}
-                >
-                  {wipeBusy ? "Recording wipe..." : "record wipe certificate"}
-                </button>
-              )}
+              ) : canReview ? (
+                <form onSubmit={handleWipe} className="flex gap-2 flex-wrap mt-2">
+                  <select name="method" className="border rounded p-1" aria-label="Wipe method">
+                    <option value="overwrite">Overwrite</option><option value="crypto_erase">Crypto erase</option>
+                    <option value="degauss">Degauss</option><option value="physical_destruction">Physical destruction</option>
+                  </select>
+                  <input name="certificate_ref" placeholder="Certificate reference" className="border rounded p-1" required />
+                  <input name="operator" placeholder="Operator" className="border rounded p-1" required />
+                  <button className="underline text-blue-700 disabled:opacity-40" disabled={wipeBusy} aria-busy={wipeBusy}>
+                    {wipeBusy ? "Recording wipe..." : "Record wipe certificate"}
+                  </button>
+                </form>
+              ) : <span>Awaiting a reviewer’s wipe record.</span>}
             </div>
           )}
           {wipeError && <div role="alert" className="mt-2 text-sm text-red-600">{wipeError}</div>}
@@ -206,14 +255,14 @@ export default function Result() {
       )}
 
       {item && route?.routing && !route.routing.refused && (() => {
-        const pid = route.routing.picked_processor_id || route.routing.reuse_recommended_processor_id;
+        const pid = route.routing.reuse_recommended_processor_id || route.routing.picked_processor_id;
         const proc = processors.find((p) => p.id === pid);
         const cand = route.routing.candidates?.find((c) => c.processor_id === pid);
         if (!proc) return null;
         const accepts = proc.accepted_materials?.includes(item.material);
         return (
           <div className="border-2 border-green-500 rounded-lg p-4 bg-green-50 text-sm space-y-1" data-testid="destination-card">
-            <div className="text-xs uppercase tracking-wide text-green-800 font-semibold">Where this waste goes</div>
+            <div className="text-xs uppercase tracking-wide text-green-800 font-semibold">{routeDirty ? "Routing preview" : "Saved destination"}</div>
             <div className="text-base font-semibold">
               {item.material} <span aria-hidden="true">&rarr;</span> {proc.name}
               <span className="text-[10px] bg-white text-gray-500 px-1.5 py-0.5 rounded-full ml-2 align-middle">seeded demo entity</span>
@@ -233,7 +282,7 @@ export default function Result() {
       {item && route?.routing && (
         <ComplianceCard
           routing={route.routing}
-          processor={processors.find((p) => p.id === (route.routing.picked_processor_id || route.routing.reuse_recommended_processor_id))}
+          processor={processors.find((p) => p.id === (route.routing.reuse_recommended_processor_id || route.routing.picked_processor_id))}
         />
       )}
 
@@ -275,6 +324,12 @@ export default function Result() {
 
           {routeError && <div className="text-sm text-red-600">{routeError}</div>}
 
+          {routeDirty && <p className="text-xs text-amber-800">Save this routing choice before requesting pickup or recording handoff.</p>}
+          <button onClick={saveRouting} disabled={!routeDirty || saveBusy}
+            className="bg-gray-900 text-white rounded px-3 py-2 text-sm disabled:opacity-40">
+            {saveBusy ? "Saving…" : "Save routing choice"}
+          </button>
+
           {route && (
             <>
               <p className="text-sm text-gray-600">{route.routing.explanation}</p>
@@ -288,7 +343,7 @@ export default function Result() {
                   <div
                     key={c.processor_id}
                     className={`border rounded-md p-3 text-sm ${
-                      c.processor_id === route.routing.picked_processor_id ? "border-green-500 bg-green-50" : "bg-white"
+                      c.processor_id === selectedId ? "border-green-500 bg-green-50" : "bg-white"
                     }`}
                   >
                     <div className="font-medium">
@@ -307,19 +362,15 @@ export default function Result() {
                       gross &#8377;{c.gross_rupees?.toFixed(2)} &minus; transport &#8377;{c.transport_cost_rupees?.toFixed(2)} &middot; evidence level {c.evidence_level}/2
                     </div>
                     {c.why_not_picked && <div className="text-xs text-gray-600 mt-1">{c.why_not_picked}</div>}
-                    {c.processor_id === route.routing.picked_processor_id && (
-                      <button
-                        className="mt-2 text-xs underline text-blue-700 disabled:opacity-40"
-                        disabled={draftBusy}
-                        aria-busy={draftBusy}
-                        onClick={() => handleDraft(c.processor_id)}
-                      >
-                        {draftBusy ? "Creating draft..." : "Request pickup (draft only, never sent)"}
-                      </button>
-                    )}
                   </div>
                 ))}
               </div>
+
+              {selectedId && <button className="text-sm underline text-blue-700 disabled:opacity-40"
+                disabled={draftBusy || routeDirty || saveBusy || stream.status !== "ROUTED"}
+                aria-busy={draftBusy} onClick={() => handleDraft(selectedId)}>
+                {draftBusy ? "Creating draft..." : "Request pickup (draft only, never sent)"}
+              </button>}
 
               {draftError && <div role="alert" className="text-sm text-red-600">{draftError}</div>}
 
@@ -332,6 +383,7 @@ export default function Result() {
 
               <div className="border rounded-md p-3 bg-white text-sm">
                 <div className="font-medium mb-1">Counterfactual receipt</div>
+                {route.receipt.warning && <p className="text-amber-800" role="status">{route.receipt.warning}</p>}
                 <div className="text-gray-500">
                   {route.receipt.default_case.label}: &#8377;{route.receipt.default_case.value_inr} / {route.receipt.default_case.co2e_kg} kg CO2e
                 </div>
@@ -363,9 +415,14 @@ export default function Result() {
       {stream.status === "ROUTED" && (
         <div className="border rounded-md p-3 bg-white text-sm space-y-1">
           <div className="font-medium">Handoff</div>
+          <p className="text-xs text-gray-600">{handoffState === "verified" ? "Verified — final weight recorded." : `Current status: ${handoffState || "not started"}`}</p>
+          <label className="block text-xs">Measured weight (kg, for weighing or verification)
+            <input type="number" min="0.001" step="any" value={weightKg} disabled={handoffState === "verified"} onChange={(e) => setWeightKg(e.target.value)}
+              className="border rounded p-1 ml-2" />
+          </label>
           <div className="flex gap-3 text-xs">
             {["matched", "collected", "weighed", "verified"].map((st) => (
-              <button key={st} className="underline text-blue-700" onClick={() => handoff(st)}>mark {st}</button>
+              <button key={st} disabled={routeDirty || saveBusy || handoffBusy || !canAdvanceHandoff(handoffState, st)} className="underline text-blue-700 disabled:opacity-40" onClick={() => handoff(st)}>mark {st}</button>
             ))}
           </div>
           {handoffMsg && <div className="text-xs text-red-600">{handoffMsg}</div>}
@@ -388,7 +445,7 @@ export default function Result() {
                   Drive {dr.drive_id}:{" "}
                   {dr.wipe ? (
                     <span className="text-green-700">{dr.wipe.method}, ref {dr.wipe.certificate_ref}, by {dr.wipe.operator}. {dr.wipe.note}</span>
-                  ) : (
+                  ) : canReview ? (
                     <form className="inline-flex gap-1 flex-wrap" onSubmit={(e) => wipe(e, dr.drive_id)}>
                       <select name="method" className="border rounded px-1">
                         <option value="overwrite">overwrite</option>
@@ -400,7 +457,7 @@ export default function Result() {
                       <input name="operator" placeholder="operator" className="border rounded px-1" required />
                       <button className="underline text-blue-700">record</button>
                     </form>
-                  )}
+                  ) : <span>Awaiting a reviewer’s wipe record.</span>}
                 </div>
               ))}
               {ewaste.transfer_blocked && <div className="text-xs text-red-600">Transfer blocked: {ewaste.blocking_reasons.length} drive(s) without a wipe or destruction record.</div>}

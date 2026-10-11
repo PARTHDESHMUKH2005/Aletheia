@@ -48,7 +48,7 @@ class Settings:
     gemini_api_key: str | None
     qwen_api_key: str | None
     qwen_base_url: str
-    use_agent: bool           # run the Strands orchestrator before the deterministic completion pass
+    use_agent: bool           # optional summary after deterministic results are persisted
 
     @property
     def dev_tools_enabled(self) -> bool:
@@ -97,8 +97,10 @@ def get_storage():
     if settings.storage == "local":
         from app.storage.local import LocalStorage
         return LocalStorage()
-    from app.storage.aws import AwsStorage
-    return AwsStorage()
+    if settings.storage == "aws":
+        from app.storage.aws import AwsStorage
+        return AwsStorage()
+    raise ValueError("STORAGE must be local or aws")
 
 
 # Hard limits (BUILD.md section 5, efficiency rule 4): every model call gets a

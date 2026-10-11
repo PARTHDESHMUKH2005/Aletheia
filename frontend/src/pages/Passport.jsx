@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { api, API_URL } from "../api.js";
+import { api } from "../api.js";
 import Icon from "../components/Icon.jsx";
 import PassportMap from "../components/PassportMap.jsx";
 import ComplianceCard from "../components/ComplianceCard.jsx";
@@ -49,6 +49,8 @@ export default function Passport() {
   const [processors, setProcessors] = useState([]);
   const [verify, setVerify] = useState(null);
   const [copyMessage, setCopyMessage] = useState("");
+  const [photoUrl, setPhotoUrl] = useState(null);
+  const [itemIndex, setItemIndex] = useState(0);
 
   useEffect(() => { api.listProcessors().then(setProcessors).catch(() => {}); }, []);
 
@@ -57,6 +59,7 @@ export default function Passport() {
     if (!streamId) return undefined;
     let cancelled = false;
     let timer;
+    setItemIndex(0);
     setStream(null); setError(null); setVerify(null);
     const load = async () => {
       try {
@@ -73,8 +76,17 @@ export default function Passport() {
   }, [streamId]);
 
   const items = stream?.characterization?.items || [];
-  const routing = stream?.routing?.[0];
-  const pickedId = routing && !routing.refused ? (routing.picked_processor_id || routing.reuse_recommended_processor_id) : null;
+  const photoKey = stream?.photo_keys?.[0];
+  useEffect(() => {
+    let cancelled = false; let url;
+    setPhotoUrl(null);
+    if (photoKey) api.getPhoto(photoKey).then((blob) => {
+      if (!cancelled) { url = URL.createObjectURL(blob); setPhotoUrl(url); }
+    }).catch(() => {});
+    return () => { cancelled = true; if (url) URL.revokeObjectURL(url); };
+  }, [photoKey]);
+  const routing = stream?.routing?.[itemIndex];
+  const pickedId = routing && !routing.refused ? (routing.reuse_recommended_processor_id || routing.picked_processor_id) : null;
   const picked = processors.find((p) => p.id === pickedId);
   const candidate = routing?.candidates?.find((c) => c.processor_id === pickedId);
   const others = useMemo(() => {
@@ -112,6 +124,13 @@ export default function Passport() {
   async function runVerify() {
     try { setVerify(await api.verifyChain(streamId)); } catch (err) { setVerify({ error: err.message }); }
   }
+  async function downloadReport() {
+    try {
+      const url = URL.createObjectURL(await api.getReport(streamId));
+      const link = document.createElement("a"); link.href = url; link.download = `loopback-${streamId}.pdf`; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) { setCopyMessage(err.message); }
+  }
 
   return (
     <div className="lb-passport-page">
@@ -119,6 +138,7 @@ export default function Passport() {
         eyebrow={`Live record · ${streamId.slice(0, 12)}`}
         action={<div className="lb-inline-actions">
           <button className="lb-button lb-button-secondary" onClick={() => window.print()}><Icon name="print" size={15} />Print</button>
+          <button className="lb-button lb-button-secondary" onClick={downloadReport}>Download PDF</button>
           <StatusBadge tone={STATUS_TONE[stream.status] || "pending"}>{STATUS_LABEL[stream.status] || stream.status}</StatusBadge>
         </div>} />
 
@@ -128,7 +148,7 @@ export default function Passport() {
       <div className="lb-metric-grid" aria-label="Waste overview">
         {[
           ["Waste category", items.length ? title : "Pending", items.length ? `${items.length} item(s) · confidence ${Math.round((stream.characterization.overall_confidence || 0) * 100)}%` : "Awaiting characterization", "recycle"],
-          ["Quantity", items.length ? `${totalKg.toFixed(totalKg < 10 ? 2 : 0)} kg` : (stream.quantity_kg ? `${stream.quantity_kg} kg` : "Pending"), items.length ? `${basis} quantity` : "Awaiting characterization", "weight"],
+          ["Quantity", items.some((i) => i.quantity_kg == null) ? "Weight incomplete" : items.length ? `${totalKg.toFixed(totalKg < 10 ? 2 : 0)} kg` : (stream.quantity_kg ? `${stream.quantity_kg} kg` : "Pending"), items.length ? `${basis} quantity` : "Awaiting characterization", "weight"],
           ["Waste origin", stream.org_name || stream.org_id, stream.pickup_location ? `${stream.pickup_location.address} · ${stream.pickup_location.pincode}` : "Location unavailable", "pin"],
           ["Date created", fmtTime(stream.created_at)?.split(",").slice(0, 2).join(",") || "Not recorded", fmtTime(stream.created_at)?.split(",").slice(-1)[0]?.trim() || "Created before timestamps were stored", "calendar"],
         ].map(([lbl, value, note, icon]) => <article className="lb-metric-card" key={lbl}>
@@ -145,8 +165,8 @@ export default function Passport() {
         </header>
         <div className="lb-passport-body">
           <div className="lb-passport-photo">
-            {stream.photo_keys?.[0]
-              ? <img src={`${API_URL}/local-uploads/${stream.photo_keys[0]}`} alt="Submitted waste" style={{ width: "100%", height: "100%", objectFit: "cover", minHeight: 265 }} />
+            {photoUrl
+              ? <img src={photoUrl} alt="Submitted waste" style={{ width: "100%", height: "100%", objectFit: "cover", minHeight: 265 }} />
               : <div><Icon name="passport" size={32} /><strong>No photo</strong></div>}
           </div>
           <div className="lb-passport-facts">
@@ -173,7 +193,7 @@ export default function Passport() {
               ["Quantity", `${it.quantity_kg ?? "?"} kg (${it.quantity_basis})`],
               ["Purity", label(it.purity)],
               ["Contamination", <ContaminationMeter key="cm" item={it} />],
-              ["Hazardous", it.hazardous ? "Yes — routed to authorized handlers only" : "No"],
+              ["Hazardous", it.hazardous ? "Yes — checked handler authorization is required" : "No"],
               ["Confidence", `${Math.round(it.confidence * 100)}%`],
               ["Composition", it.composition_note],
             ]} />
@@ -186,7 +206,7 @@ export default function Passport() {
             ["Chain identifier", streamId],
             ["Ledger links", String(stream.ledger?.length || 0)],
             ["Latest hash", short(lastLink?.entry_hash)],
-            ["Integrity", verify == null ? "Not checked" : verify.error ? verify.error : verify.ok ? `Intact — ${verify.links} link(s)` : `BROKEN at link ${verify.first_broken}`],
+            ["Integrity", verify == null ? "Not checked" : verify.error ? verify.error : verify.ok ? `Intact — ${verify.links} link(s)` : `Unverified: empty, legacy or damaged (link ${verify.first_broken ?? "none"})`],
           ]} />
           <button className="lb-button lb-button-primary" onClick={runVerify} disabled={!stream.ledger?.length}><Icon name="verify" size={15} />Verify record</button>
           {!stream.ledger?.length && <p className="lb-note lb-action-note">Available once a handoff is recorded.</p>}
@@ -200,6 +220,10 @@ export default function Passport() {
         </SectionCard>
 
         <SectionCard title="Processor & destination" action={<StatusBadge tone={picked ? "success" : "pending"}>{picked ? "Matched" : routing?.refused ? "Refused" : "Unassigned"}</StatusBadge>}>
+          {items.length > 1 && <label className="block mb-3 text-sm">Item
+            <select className="border rounded p-1 ml-2" value={itemIndex} onChange={(e) => setItemIndex(Number(e.target.value))}>
+              {items.map((item, index) => <option key={index} value={index}>{index + 1}: {label(item.material)}</option>)}
+            </select></label>}
           {picked ? <DetailList rows={[
             ["Processor", `${picked.name} (seeded demo entity)`],
             ["Location", picked.location?.address],

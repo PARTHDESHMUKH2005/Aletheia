@@ -2,10 +2,11 @@ import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { rememberStream } from "../lib/recent.js";
 import { api, resizeImageToJpeg } from "../api.js";
-import { ORGS } from "../orgs.js";
+import { useSession } from "../components/Session.jsx";
 
 export default function Upload() {
   const navigate = useNavigate();
+  const { orgs: ORGS } = useSession();
   const [orgId, setOrgId] = useState(ORGS[0].id);
   const [file, setFile] = useState(null);
   const [note, setNote] = useState("");
@@ -27,7 +28,7 @@ export default function Upload() {
     setError(null);
     try {
       const resized = await resizeImageToJpeg(file);
-      const [target] = await api.createUploadTargets(1);
+      const [target] = await api.createUploadTargets(1, orgId, [resized.size]);
       await api.putUpload(target.url, resized);
 
       const { stream_id } = await api.createStream({
@@ -92,6 +93,7 @@ export default function Upload() {
             <label className="block text-xs text-gray-600 mb-1">Quantity (kg, optional)</label>
             <input
               type="number"
+              min="0.1"
               step="0.1"
               className="w-full border rounded-md px-3 py-2 text-sm"
               value={quantity}

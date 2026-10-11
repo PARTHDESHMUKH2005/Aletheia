@@ -6,6 +6,8 @@ mangum>=0.22,<1
 boto3>=1.43,<2
 pytest>=9.1,<10
 reportlab>=5.0,<6
+pillow>=12.3,<13
+httpx>=0.28,<1
 
 # Gemini is the default model provider (LLM_PROVIDER=gemini in config.py).
 google-genai>=2.29,<3

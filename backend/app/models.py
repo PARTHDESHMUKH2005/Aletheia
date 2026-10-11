@@ -5,7 +5,8 @@ acceptance check requires parsing vision output into a real Characterization mod
 """
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
+from app.uploads import MAX_PHOTOS, validate_upload_key
 
 
 class Item(BaseModel):
@@ -16,21 +17,38 @@ class Item(BaseModel):
         "used_oil", "other",
     ]
     composition_note: str
-    quantity_kg: float | None
+    quantity_kg: float | None = Field(gt=0, allow_inf_nan=False)
     quantity_basis: Literal["stated", "estimated"]
     purity: Literal["high", "mixed", "unknown"]
     hazardous: bool
     is_storage_device: bool
-    confidence: float  # 0 to 1, the model's own score (not calibrated)
+    confidence: float = Field(ge=0, le=1, allow_inf_nan=False)  # self-reported, not calibrated
     reasoning: str
     # Visible contaminants the model names (for example "steel pieces mixed in", "oil stains").
     # Plain strings, no percentages: a purity figure is not shown because nothing validates one.
     contaminants: list[str] = Field(default_factory=list)
 
+    @model_validator(mode="after")
+    def enforce_material_flags(self):
+        if self.material in ("battery_lead_acid", "battery_lithium", "used_oil"):
+            self.hazardous = True
+        if self.material == "e_waste_storage_drive":
+            self.is_storage_device = True
+        return self
+
+    def reclassified(self, material: str, *, hazardous: bool = False, is_storage_device: bool = False):
+        """Reviewer correction replaces classification flags; required flags still apply.
+
+        The original model flags remain valid for ordinary characterization, including
+        hazardous contamination or installed storage in an otherwise reusable item.
+        """
+        return Item.model_validate({**self.model_dump(), "material": material,
+            "hazardous": hazardous, "is_storage_device": is_storage_device})
+
 
 class Characterization(BaseModel):
     items: list[Item]
-    overall_confidence: float
+    overall_confidence: float = Field(ge=0, le=1, allow_inf_nan=False)
 
 
 StreamStatus = Literal["SUBMITTED", "CHARACTERIZING", "ROUTED", "NEEDS_REVIEW", "REJECTED", "FAILED"]
@@ -40,7 +58,17 @@ HandoffStatus = Literal["requested", "matched", "collected", "weighed", "verifie
 # --- section 2 request/response shapes ---
 
 class UploadRequest(BaseModel):
-    count: int
+    count: int = Field(ge=1, le=MAX_PHOTOS)
+    org_id: str
+    sizes: list[int] | None = None
+
+    @model_validator(mode="after")
+    def upload_sizes(self):
+        from app.uploads import MAX_UPLOAD_BYTES
+        if self.sizes is not None and (len(self.sizes) != self.count or
+                any(not 0 < size <= MAX_UPLOAD_BYTES for size in self.sizes)):
+            raise ValueError("provide one size between 1 byte and 5 MiB per photo")
+        return self
 
 
 class UploadTarget(BaseModel):
@@ -50,10 +78,19 @@ class UploadTarget(BaseModel):
 
 class StreamCreateRequest(BaseModel):
     org_id: str
-    note: str = ""
-    quantity_kg: float | None = None
-    photo_keys: list[str]
+    note: str = Field(default="", max_length=4000)
+    quantity_kg: float | None = Field(default=None, gt=0, allow_inf_nan=False)
+    photo_keys: list[str] = Field(min_length=1, max_length=MAX_PHOTOS)
     pincode: str | None = None  # feature spec section 1: location in, pincode or pin
+
+    @field_validator("photo_keys")
+    @classmethod
+    def safe_photo_keys(cls, keys):
+        for key in keys:
+            validate_upload_key(key)
+        if len(set(keys)) != len(keys):
+            raise ValueError("photo keys must be distinct")
+        return keys
 
 
 class StreamCreateResponse(BaseModel):
@@ -146,7 +183,8 @@ class ReceiptCase(BaseModel):
 
 class CounterfactualReceipt(BaseModel):
     material: str
-    quantity_kg: float
+    quantity_kg: float | None
+    warning: str | None = None
     default_case: ReceiptCase
     chosen_case: ReceiptCase
     diff_rupees: float | None
@@ -164,8 +202,8 @@ class StreamResponse(BaseModel):
     status: StreamStatus
     org_id: str
     characterization: Characterization | None = None
-    routing: RoutingDecision | None = None
-    receipt: CounterfactualReceipt | None = None
+    routing: list[dict] | None = None
+    receipts: list[CounterfactualReceipt | None] | None = None
     ledger: list[dict] = []
     timings: dict = {}
 

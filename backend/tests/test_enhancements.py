@@ -1,3 +1,4 @@
+from tests.helpers import AUTH_HEADERS, JPEG_BYTES
 """Tests for the decision-engine, assessment, e-waste, review and dashboard additions."""
 import copy
 import json
@@ -12,7 +13,7 @@ from app.tools import ewaste, matching, report
 from app.tools.assessment import assess_item
 from tests.test_matching import ORG_LOCATION, SYNTHETIC_PROCESSORS, _synthetic_steel_factor, make_item
 
-client = TestClient(app)
+client = TestClient(app, headers=AUTH_HEADERS)
 
 
 # --- smart recovery engine ---
@@ -136,8 +137,8 @@ def test_wipe_requires_certificate_ref_and_operator():
 def _stream(monkeypatch, **kw):
     ch = Characterization(items=[make_item(**kw)], overall_confidence=kw.get("confidence", 0.9))
     monkeypatch.setattr(pipeline, "characterize_waste", lambda *a, **k: ch)
-    up = client.post("/uploads", json={"count": 1}).json()[0]
-    client.put(up["url"], content=b"x")
+    up = client.post("/uploads", json={"count": 1, "org_id": "org_campus_lab"}).json()[0]
+    client.put(up["url"], content=JPEG_BYTES)
     r = client.post("/streams", json={"org_id": "org_campus_lab", "photo_keys": [up["key"]], "pincode": "147001"})
     return r.json()["stream_id"]
 

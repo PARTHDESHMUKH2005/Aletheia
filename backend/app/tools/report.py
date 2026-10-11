@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 from app.models import CounterfactualReceipt, Item, PriceRange, ReceiptCase
+from app.tools.ledger import HANDOFF_ORDER
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 _EMISSION_DATA: dict = json.loads((_DATA_DIR / "emission_factors.json").read_text())
@@ -54,18 +55,21 @@ def counterfactual_receipt(item: Item, routing_result: dict) -> CounterfactualRe
     """Builds the default-case-vs-chosen-route receipt for one routed item.
     routing_result is find_processors()'s return dict.
     """
-    quantity_kg = item.quantity_kg or 0.0
+    quantity_kg = item.quantity_kg
     factor = get_avoided_factor(item.material)
 
-    picked_id = routing_result.get("picked_processor_id")
+    picked_id = routing_result.get("reuse_recommended_processor_id") or routing_result.get("picked_processor_id")
     picked = next(
-        (c for c in routing_result["candidates"] if c["processor_id"] == picked_id),
+        (c for c in routing_result.get("candidates", []) if c["processor_id"] == picked_id),
         None,
     )
 
     default_case = ReceiptCase(label="Landfill or informal buyer (default, no credit)", co2e_kg=0.0, value_inr=0.0)
 
-    if picked is not None:
+    if quantity_kg is None:
+        chosen_case = ReceiptCase(label="Enter a weight to calculate money and CO2e credit", co2e_kg=None, value_inr=None)
+        diff_rupees = diff_co2e = None
+    elif picked is not None:
         chosen_case = ReceiptCase(
             label=f"LoopBack routing via {picked['name']}",
             co2e_kg=picked["net_co2e_kg"],
@@ -81,6 +85,7 @@ def counterfactual_receipt(item: Item, routing_result: dict) -> CounterfactualRe
     return CounterfactualReceipt(
         material=item.material,
         quantity_kg=quantity_kg,
+        warning="Weight is unknown. Totals exclude this item until a weight is recorded." if quantity_kg is None else None,
         default_case=default_case,
         chosen_case=chosen_case,
         diff_rupees=diff_rupees,
@@ -101,15 +106,17 @@ def dashboard_summary(routed_items: list[tuple[Item, dict]]) -> dict:
     any_review = False
 
     for item, routing_result in routed_items:
-        picked_id = routing_result.get("picked_processor_id")
+        picked_id = routing_result.get("reuse_recommended_processor_id") or routing_result.get("picked_processor_id")
         picked = next(
-            (c for c in routing_result["candidates"] if c["processor_id"] == picked_id),
+            (c for c in routing_result.get("candidates", []) if c["processor_id"] == picked_id),
             None,
         )
         if picked is not None:
             kg_by_tier[picked["tier"]] = kg_by_tier.get(picked["tier"], 0.0) + (item.quantity_kg or 0.0)
             if picked["net_co2e_kg"] is not None:
                 co2e_avoided_kg += picked["net_co2e_kg"]
+        elif routing_result.get("reuse_recommended_processor_id"):
+            kg_by_tier["reuse"] += item.quantity_kg or 0.0
         if routing_result.get("review_required"):
             any_review = True
 
@@ -128,7 +135,7 @@ def dashboard_summary(routed_items: list[tuple[Item, dict]]) -> dict:
 
 # --- organization impact dashboard ---
 
-_HANDOFF_ORDER = ["requested", "matched", "collected", "weighed", "verified"]
+_HANDOFF_ORDER = HANDOFF_ORDER
 _PAPERWORK_EVENTS = {  # paperwork LoopBack can check from the ledger
     "data wipe certificate": "data_wipe_confirmed",
     "transfer record": "handoff_collected",
@@ -155,7 +162,7 @@ def _handoff_state(events: list[dict]) -> tuple[str | None, float | None]:
         status = e["event"][len("handoff_"):]
         if status in _HANDOFF_ORDER:
             idx = _HANDOFF_ORDER.index(status)
-            if idx >= best:
+            if idx > best:
                 best = idx
                 payload = _json.loads(e["payload_json"])
                 if payload.get("weight_kg") is not None:
@@ -203,10 +210,8 @@ def org_impact(streams: list[dict], ledgers: dict[str, list[dict]]) -> dict:
         if status == "FAILED" or not characterization:
             continue
         events = ledgers.get(sid, [])
-        event_names = {e["event"] for e in events}
-        handoff, handoff_weight = _handoff_state(events)
         routings = stream.get("routing") or []
-        reviewed = bool(stream.get("review"))
+        reviewed = status == "ROUTED" and bool(stream.get("review"))
 
         if status == "NEEDS_REVIEW" and not reviewed:
             awaiting_review += 1
@@ -220,6 +225,10 @@ def org_impact(streams: list[dict], ledgers: dict[str, list[dict]]) -> dict:
                 actions.append({"stream_id": sid, "action": "Record data wipe", "detail": reason})
 
         for idx, (item_data, routing) in enumerate(zip(characterization["items"], routings)):
+            from app.tools.ledger import item_events
+            scoped_events = item_events(events, idx, len(characterization["items"]))
+            event_names = {e["event"] for e in scoped_events}
+            handoff, handoff_weight = _handoff_state(scoped_events)
             item = Item.model_validate(item_data)
             kg = item.quantity_kg or 0.0
             submitted_kg += kg
@@ -238,21 +247,22 @@ def org_impact(streams: list[dict], ledgers: dict[str, list[dict]]) -> dict:
                     continue
                 needed_event = _PAPERWORK_EVENTS[paper]
                 if needed_event is None:
-                    present = bool(events)
+                    present = bool(scoped_events)
                     due = True
                 elif needed_event in ("handoff_collected", "handoff_weighed"):
                     present = needed_event in event_names
                     # only chase it once the handoff has moved past that step
                     due = handoff in (("weighed", "verified") if needed_event == "handoff_collected" else ("verified",))
                 else:
-                    present = needed_event in event_names or bool(batch)
+                    present = needed_event in event_names or bool(batch and batch.get("drives") and not blocking_reasons_ewaste(batch))
                     due = item.is_storage_device or item.material == "e_waste_storage_drive"
                 if due and not present:
                     missing_docs.append({"stream_id": sid, "document": paper, "material": item.material})
             counted += 1
 
-            picked = next((c for c in routing["candidates"] if c["processor_id"] == routing.get("picked_processor_id")), None)
             reuse_id = routing.get("reuse_recommended_processor_id")
+            selected_id = reuse_id or routing.get("picked_processor_id")
+            picked = next((c for c in routing["candidates"] if c["processor_id"] == selected_id), None)
             if picked is None and not reuse_id:
                 actions.append({"stream_id": sid, "action": "No route", "detail": f"No buyer cleared the checks for {item.material}."})
                 continue
@@ -291,6 +301,13 @@ def org_impact(streams: list[dict], ledgers: dict[str, list[dict]]) -> dict:
                     real["transport_cost_inr"] += transport_v * scale
                     real["net_inr"] += (picked["net_rupees"] or 0.0) * scale
                     real["co2e_kg"] += (picked["net_co2e_kg"] or 0.0) * scale
+                elif picked is not None and actual > 0:
+                    gross_v = (picked.get("price_per_kg_inr") or 0) * actual
+                    net_v = (picked.get("net_rupees_per_kg") or 0) * actual
+                    real["gross_inr"] += gross_v
+                    real["transport_cost_inr"] += gross_v - net_v
+                    real["net_inr"] += net_v
+                    real["co2e_kg"] += (picked.get("net_co2e_per_kg") or 0) * actual
 
     def _round(d):
         return {k: round(v, 2) for k, v in d.items()}
@@ -319,3 +336,59 @@ def org_impact(streams: list[dict], ledgers: dict[str, list[dict]]) -> dict:
 def blocking_reasons_ewaste(batch: dict) -> list[str]:
     from app.tools.ewaste import blocking_reasons
     return blocking_reasons(batch)
+
+
+def stream_pdf(stream: dict, verification: dict) -> bytes:
+    """Downloadable receipt with data provenance and ledger status, built in memory."""
+    from io import BytesIO
+    from xml.sax.saxutils import escape
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+
+    output = BytesIO()
+    styles = getSampleStyleSheet()
+    def paragraph(text, style="BodyText"):
+        return Paragraph(escape(str(text)), styles[style])
+    story = [paragraph("LoopBack Waste Passport", "Title"),
+             paragraph(f"Record: {stream['stream_id']}"),
+             paragraph(f"Organization: {stream['org_id']} | Status: {stream['status']}"),
+             paragraph("Demo data. Buyers, most prices and recovery rates are illustrative. No pickup is sent."),
+             Spacer(1, 14)]
+    items = (stream.get("characterization") or {}).get("items", [])
+    receipts = stream.get("receipts") or []
+    routes = stream.get("routing") or []
+    for index, data in enumerate(items):
+        story.append(paragraph(f"Item {index + 1}: {data['material'].replace('_', ' ')}", "Heading2"))
+        receipt = receipts[index] if index < len(receipts) else None
+        routing = routes[index] if index < len(routes) else None
+        story.append(paragraph(f"Weight: {data.get('quantity_kg')} kg ({data['quantity_basis']}). "
+            f"Confidence: {data['confidence']} (model self-reported, not calibrated)."))
+        if routing:
+            story.append(paragraph(routing.get("explanation", "Out of scope; human review required.")))
+        if receipt:
+            if receipt.get("warning"):
+                story.append(paragraph(receipt["warning"]))
+            values = [["Case", "Value (INR)", "CO2e credit (kg)"]]
+            for key in ("default_case", "chosen_case"):
+                case = receipt[key]
+                values.append([paragraph(case["label"]),
+                    "Unavailable" if case["value_inr"] is None else f"{case['value_inr']:.2f}",
+                    "Unavailable" if case["co2e_kg"] is None else f"{case['co2e_kg']:.2f}"])
+            table = Table(values, colWidths=[280, 100, 120])
+            table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), colors.whitesmoke),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.lightgrey), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+            story.extend([Spacer(1, 8), table,
+                paragraph(f"Emission factor: {receipt.get('emission_factor_source') or 'Unavailable'}. "
+                          f"{receipt.get('emission_factor_label') or ''}")])
+            if receipt.get("price_range"):
+                price = receipt["price_range"]
+                story.append(paragraph(f"Price benchmark: INR {price['low_inr_per_kg']} to "
+                    f"{price['high_inr_per_kg']}/kg. {price['source']}; {price['as_of']}."))
+        story.append(Spacer(1, 12))
+    status = "Hash chain verified" if verification["ok"] else "Hash chain unverified, empty, legacy or damaged"
+    story.extend([paragraph(f"Ledger: {status}; {verification['links']} links.", "Heading2"),
+        paragraph("Hash verification checks recorded contents. It does not certify a real handoff or prevent a database owner from replacing the whole chain."),
+        paragraph("Routing aid only. Confirm rules and processor authorization with official CPCB or State Board sources.")])
+    SimpleDocTemplate(output, title="LoopBack Waste Passport", leftMargin=40, rightMargin=40).build(story)
+    return output.getvalue()

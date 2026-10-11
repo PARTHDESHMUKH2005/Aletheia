@@ -58,7 +58,7 @@ def out_of_scope_flag(item) -> str | None:
 
 def needs_review(item, rule: dict) -> bool:
     """Combines the rule row's review_required with LoopBack-specific always-review triggers."""
-    if rule["review_required"]:
+    if rule["review_required"] or item.hazardous:
         return True
     if item.material in _ALWAYS_REVIEW_MATERIALS:
         return True
@@ -90,7 +90,8 @@ def processor_authorized_for(processor: dict, material: str, hazardous: bool) ->
     """
     if material not in processor.get("accepted_materials", []):
         return False
-    if not hazardous and not _needs_registered_handler(processor, material):
+    intrinsically_hazardous = material in ("battery_lead_acid", "battery_lithium", "used_oil")
+    if not hazardous and not intrinsically_hazardous and not _needs_registered_handler(processor, material):
         return True
     return bool(processor.get("authorization_ref")) and bool(processor.get("authorization_checked_on"))
 

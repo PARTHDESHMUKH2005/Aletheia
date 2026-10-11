@@ -30,7 +30,7 @@ from pathlib import Path
 
 from app.models import Item
 from app.tools.geo import validate_point
-from app.tools.guardrails import authorization_label, needs_review, processor_authorized_for
+from app.tools.guardrails import authorization_label, needs_review, processor_authorized_for, out_of_scope_flag
 from app.tools.report import get_avoided_factor
 from app.tools.rules import lookup_rules, unverified_label
 
@@ -150,6 +150,12 @@ def find_processors(
         raise ValueError("evidence_weight must be between 0 and 1")
     cap = default_max_distance_km() if max_distance_km is None else float(max_distance_km)
 
+    scope = out_of_scope_flag(item)
+    if scope:
+        return {"refused": True, "out_of_scope_category": scope, "candidates": [],
+                "unscored_candidates": [], "picked_processor_id": None, "review_required": True,
+                "explanation": "Out of scope. Refer this item to the proper authority."}
+
     rule = lookup_rules(item.material, item.hazardous)
     review_required = needs_review(item, rule)
     quantity_kg = item.quantity_kg or 0.0
@@ -257,7 +263,9 @@ def find_processors(
 
     reuse_processor_id = None
     if _looks_reusable(item):
-        reuse_candidates = [p for p in eligible if p["tier"] == "reuse"]
+        reuse_candidates = [p for p in eligible if p["tier"] == "reuse"
+            and processor_authorized_for(p, item.material, item.hazardous)
+            and haversine_km(org_location, p["location"]) <= cap]
         if reuse_candidates:
             reuse_processor_id = reuse_candidates[0]["id"]
 

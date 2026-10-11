@@ -1,3 +1,4 @@
+from tests.helpers import AUTH_HEADERS, JPEG_BYTES
 import pytest
 from fastapi.testclient import TestClient
 
@@ -5,7 +6,7 @@ from app import pipeline
 from app.main import app
 from app.models import Characterization, Item
 
-client = TestClient(app)
+client = TestClient(app, headers=AUTH_HEADERS)
 
 
 def make_characterization(material="steel_scrap", confidence=0.9, quantity_kg=100.0) -> Characterization:
@@ -25,8 +26,8 @@ def stub_characterize(monkeypatch):
 
 
 def create_routed_stream() -> str:
-    upload = client.post("/uploads", json={"count": 1}).json()[0]
-    put_resp = client.put(upload["url"], content=b"fake-jpeg-bytes")
+    upload = client.post("/uploads", json={"count": 1, "org_id": "org_campus_workshop"}).json()[0]
+    put_resp = client.put(upload["url"], content=JPEG_BYTES)
     assert put_resp.status_code == 200
 
     create_resp = client.post("/streams", json={
@@ -37,7 +38,7 @@ def create_routed_stream() -> str:
 
 
 def test_uploads_returns_matching_key_and_url():
-    targets = client.post("/uploads", json={"count": 2}).json()
+    targets = client.post("/uploads", json={"count": 2, "org_id": "org_campus_workshop"}).json()
     assert len(targets) == 2
     for t in targets:
         assert t["key"] in t["url"]
@@ -89,7 +90,7 @@ def test_route_endpoint_rejects_out_of_range_w():
 
 
 def test_route_endpoint_404_before_characterization():
-    upload = client.post("/uploads", json={"count": 1}).json()[0]
+    upload = client.post("/uploads", json={"count": 1, "org_id": "org_campus_workshop"}).json()[0]
     client.put(upload["url"], content=b"fake")
     # Don't call POST /streams (which triggers the background pipeline) -- hit
     # /route on a nonexistent stream id directly instead.
@@ -97,9 +98,12 @@ def test_route_endpoint_404_before_characterization():
     assert resp.status_code == 404
 
 
-def test_wipe_confirmation_is_recorded_in_ledger():
+def test_wipe_confirmation_is_recorded_in_ledger(monkeypatch):
+    characterization = make_characterization()
+    characterization.items[0].is_storage_device = True
+    monkeypatch.setattr(pipeline, "characterize_waste", lambda *a, **k: characterization)
     stream_id = create_routed_stream()
-    resp = client.post(f"/streams/{stream_id}/wipe")
+    resp = client.post(f"/streams/{stream_id}/wipe", json={"method": "overwrite", "certificate_ref": "TEST-CERT", "operator": "Tester"})
     assert resp.status_code == 200
     assert resp.json()["ok"] is True
 
@@ -162,9 +166,9 @@ def test_verify_endpoint_red_after_tamper():
     assert body["first_broken"] == 1
 
 
-def test_dashboard_for_unknown_org_is_404():
+def test_dashboard_for_unknown_org_is_denied():
     resp = client.get("/orgs/does-not-exist/dashboard")
-    assert resp.status_code == 404
+    assert resp.status_code == 403
 
 
 def test_dashboard_includes_disclaimer():
@@ -211,11 +215,12 @@ def test_stream_exposes_pickup_location_and_photo_is_served(tmp_path, monkeypatc
     from app.storage.local import LocalStorage
     st = LocalStorage(db_path=tmp_path / "t.db")
     monkeypatch.setattr(main, "_storage", lambda: st)
-    st.save_upload("abc.jpg", b"jpegbytes")
-    st.create_stream("s9", {"org_id": "org_campus_workshop", "photo_keys": ["abc.jpg"], "pincode": "147001", "status": "ROUTED"})
-    c = TestClient(main.app)
+    st.save_upload("org_campus_workshop/abc.jpg", JPEG_BYTES)
+    st.create_stream("s9", {"org_id": "org_campus_workshop", "photo_keys": ["org_campus_workshop/abc.jpg"], "pincode": "147001", "status": "ROUTED"})
+    monkeypatch.setattr("app.auth.get_storage", lambda: st)
+    c = TestClient(main.app, headers=AUTH_HEADERS)
     body = c.get("/streams/s9").json()
     assert body["pickup_location"]["pincode"] == "147001" and body["org_name"] == "Campus Workshop"
-    assert c.get("/local-uploads/abc.jpg").content == b"jpegbytes"
-    assert c.get("/local-uploads/missing.jpg").status_code == 404
+    assert c.get("/local-uploads/org_campus_workshop/abc.jpg").content == JPEG_BYTES
+    assert c.get("/local-uploads/org_campus_workshop/missing.jpg").status_code == 404
     assert c.get("/local-uploads/..%2Fsecret").status_code == 404

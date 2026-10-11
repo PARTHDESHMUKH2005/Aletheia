@@ -1,18 +1,24 @@
-export const API_URL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
+export const API_URL = import.meta.env?.VITE_API_URL || "http://127.0.0.1:8000";
 
-async function request(path, options = {}) {
-  const res = await fetch(`${API_URL}${path}`, options);
+export const getToken = () => sessionStorage.getItem("loopback-token") || "";
+export const setToken = (token) => token ? sessionStorage.setItem("loopback-token", token) : sessionStorage.removeItem("loopback-token");
+
+async function request(path, options = {}, asBlob = false) {
+  const headers = new Headers(options.headers);
+  if (!headers.has("Authorization") && getToken()) headers.set("Authorization", `Bearer ${getToken()}`);
+  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
   if (!res.ok) {
     let detail = res.statusText;
     try {
       const body = await res.json();
-      detail = body.detail || JSON.stringify(body);
+      detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail || body);
     } catch {
       /* ignore */
     }
     throw new Error(`${res.status} ${detail}`);
   }
   if (res.status === 204) return null;
+  if (asBlob) return res.blob();
   return res.json();
 }
 
@@ -34,7 +40,7 @@ export function resizeImageToJpeg(file, maxEdge = 1280, quality = 0.85) {
         canvas.height = h;
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, w, h);
-        canvas.toBlob((blob) => resolve(blob), "image/jpeg", quality);
+        canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Could not resize image")), "image/jpeg", quality);
       };
       img.src = reader.result;
     };
@@ -43,14 +49,24 @@ export function resizeImageToJpeg(file, maxEdge = 1280, quality = 0.85) {
 }
 
 export const api = {
-  createUploadTargets: (count) =>
+  getSession: (token = getToken()) => request("/session", { headers: { Authorization: `Bearer ${token}` } }),
+
+  createUploadTargets: (count, orgId, sizes) =>
     request("/uploads", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ count }),
+      body: JSON.stringify({ count, org_id: orgId, sizes }),
     }),
 
-  putUpload: (url, blob) => request(url, { method: "PUT", body: blob }),
+  putUpload: async (url, blob) => {
+    if (!/^https?:\/\//.test(url)) return request(url, { method: "PUT", body: blob });
+    // Presigned S3 uploads have their own authorization; never send the API credential.
+    const response = await fetch(url, { method: "PUT", headers: { "Content-Type": "image/jpeg", "If-None-Match": "*" }, body: blob });
+    if (!response.ok) throw new Error(`Upload failed (${response.status})`);
+    return null;
+  },
+
+  getPhoto: (key) => request(`/local-uploads/${key}`, {}, true),
 
   createStream: (body) =>
     request("/streams", {
@@ -63,6 +79,11 @@ export const api = {
 
   getRoute: (streamId, w, itemIndex = 0, evidenceWeight = 0) =>
     request(`/streams/${streamId}/route?w=${w}&item_index=${itemIndex}&evidence_weight=${evidenceWeight}`),
+
+  saveRoute: (streamId, w, itemIndex = 0, evidenceWeight = 0) => request(`/streams/${streamId}/route`, {
+    method: "PUT", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ w, item_index: itemIndex, evidence_weight: evidenceWeight }),
+  }),
 
   getReviewQueue: () => request("/review-queue"),
 
@@ -96,14 +117,16 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  confirmWipe: (streamId) => request(`/streams/${streamId}/wipe`, { method: "POST" }),
+  confirmWipe: (streamId, body) => request(`/streams/${streamId}/wipe`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  }),
 
   draftPickupMessage: (streamId, processorId, itemIndex = 0) =>
     request(`/streams/${streamId}/draft-message?processor_id=${processorId}&item_index=${itemIndex}`, {
       method: "POST",
     }),
 
-  getReport: (streamId) => request(`/streams/${streamId}/report`),
+  getReport: (streamId) => request(`/streams/${streamId}/report`, {}, true),
 
   getDashboard: (orgId) => request(`/orgs/${orgId}/dashboard`),
 

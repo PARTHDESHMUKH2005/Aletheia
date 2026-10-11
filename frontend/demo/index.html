@@ -37,24 +37,31 @@
 <body>
 
 <h1>LoopBack</h1>
-<div class="sub">Demo page -- not the Phase 4 React app. Talks directly to the local FastAPI backend.</div>
+<div class="sub">Waste-routing demo. Buyers and most figures are illustrative.</div>
 
-<section id="submit-section">
+<section>
+  <h2>Organization access</h2>
+  <form id="signin">
+    <label for="credential">Access credential</label>
+    <input id="credential" type="password" autocomplete="off" required />
+    <button>Sign in</button>
+  </form>
+  <button id="signout" class="secondary" hidden>Sign out</button>
+  <div id="session-status" role="status"></div>
+</section>
+
+<section id="submit-section" hidden>
   <h2>1. Submit a waste stream</h2>
   <label>Organization</label>
-  <select id="org">
-    <option value="org_campus_workshop">Campus Workshop</option>
-    <option value="org_campus_lab">Campus Lab</option>
-    <option value="org_data_center">Data Center</option>
-  </select>
+  <select id="org"></select>
   <label>Photo</label>
-  <input type="file" id="photo" accept="image/*" />
+  <input type="file" id="photo" accept="image/*" multiple />
   <label>Note</label>
   <textarea id="note" rows="2" placeholder="optional note about the item"></textarea>
   <div class="row">
     <div>
       <label>Quantity (kg, optional)</label>
-      <input type="number" id="quantity" step="0.1" />
+      <input type="number" id="quantity" min="0.1" step="0.1" />
     </div>
     <div>
       <label>Pincode</label>
@@ -70,11 +77,15 @@
   <div id="characterization"></div>
 
   <div id="slider-block" style="display:none">
+    <label for="item">Item</label>
+    <select id="item"></select>
     <label>Routing slider: 0 = max money, 1 = max carbon</label>
     <input type="range" id="slider" min="0" max="1" step="0.05" value="0.5" />
     <div id="routing"></div>
     <div id="receipt"></div>
+    <button id="save-route-btn">Save routing choice</button>
     <button id="request-pickup-btn" class="secondary">Request pickup (draft only, never sent)</button>
+    <button id="pdf-btn" class="secondary">Download PDF</button>
     <div id="draft-message"></div>
   </div>
 </section>
@@ -84,7 +95,7 @@
   <label>Chain ID (= stream ID)</label>
   <input type="text" id="verify-id" placeholder="paste a stream_id" />
   <button id="verify-btn" class="secondary">Verify</button>
-  <button id="tamper-btn" class="secondary">Tamper link 1 (demo tool)</button>
+  <button id="tamper-btn" class="secondary" hidden>Tamper link 1 (demo tool)</button>
   <div id="verify-result"></div>
 </section>
 
@@ -96,142 +107,156 @@
 <footer>Routing aid only. Confirm rules and processor authorization with the official CPCB or State Board source. Processors below are seeded example data, not verified entities. Photos are sent to the model provider (Google for Gemini). Upload only waste photos, no faces or documents.</footer>
 
 <script>
-const API = "";
-let currentStreamId = null;
-
-function badge(status) {
-  return `<span class="status ${status}">${status}</span>`;
+const el = (id) => document.getElementById(id);
+let token = sessionStorage.getItem("loopback-token") || "";
+let currentStream = null, preview = null, timer, routeGeneration = 0;
+const index = () => Number(el("item").value || 0);
+const chosen = (route) => route?.reuse_recommended_processor_id || route?.picked_processor_id;
+function show(id, value) {
+  const node = document.createElement("pre");
+  node.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+  el(id).replaceChildren(node);
 }
-
-async function loadProcessors() {
-  const res = await fetch(`${API}/processors`);
-  const processors = await res.json();
-  document.getElementById("processors-list").innerHTML = processors.map(p => `
-    <div class="candidate">
-      <strong>${p.name}</strong> <span class="seeded-tag">seeded</span>
-      <div class="muted">${p.tier} &middot; accepts: ${p.accepted_materials.join(", ")}</div>
-    </div>`).join("");
-}
-
-document.getElementById("submit-btn").onclick = async () => {
-  const fileInput = document.getElementById("photo");
-  if (!fileInput.files.length) { alert("pick a photo first"); return; }
-  const btn = document.getElementById("submit-btn");
-  btn.disabled = true;
-  document.getElementById("submit-status").textContent = "Uploading...";
-
-  const uploadRes = await fetch(`${API}/uploads`, {
-    method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({count: 1}),
-  });
-  const [target] = await uploadRes.json();
-  await fetch(`${API}${target.url}`, { method: "PUT", body: fileInput.files[0] });
-
-  const quantity = document.getElementById("quantity").value;
-  const streamRes = await fetch(`${API}/streams`, {
-    method: "POST", headers: {"Content-Type": "application/json"},
-    body: JSON.stringify({
-      org_id: document.getElementById("org").value,
-      note: document.getElementById("note").value,
-      quantity_kg: quantity ? parseFloat(quantity) : null,
-      photo_keys: [target.key],
-      pincode: document.getElementById("pincode").value || null,
-    }),
-  });
-  const { stream_id } = await streamRes.json();
-  currentStreamId = stream_id;
-  document.getElementById("verify-id").value = stream_id;
-  document.getElementById("submit-status").textContent = `stream_id=${stream_id} -- polling...`;
-  document.getElementById("result-section").style.display = "block";
-  pollStream(stream_id);
-};
-
-async function pollStream(streamId) {
-  const res = await fetch(`${API}/streams/${streamId}`);
-  const stream = await res.json();
-  document.getElementById("status-badge").innerHTML = badge(stream.status);
-
-  if (["SUBMITTED", "CHARACTERIZING"].includes(stream.status)) {
-    setTimeout(() => pollStream(streamId), 2000);
-    return;
+async function request(path, options = {}, binary = false) {
+  const headers = new Headers(options.headers);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  const response = await fetch(path, { ...options, headers });
+  if (!response.ok) {
+    let message = response.statusText;
+    try { const body = await response.json(); message = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail); } catch {}
+    throw new Error(`${response.status}: ${message}`);
   }
-  document.getElementById("submit-btn").disabled = false;
-  document.getElementById("submit-status").textContent = "Done.";
-
-  if (stream.characterization) {
-    const item = stream.characterization.items[0];
-    document.getElementById("characterization").innerHTML = `
-      <div class="candidate">
-        <strong>${item.material}</strong> (confidence ${item.confidence})
-        <div class="muted">${item.composition_note}</div>
-        <div class="muted">${item.quantity_kg ?? "?"} kg (${item.quantity_basis})</div>
-      </div>`;
-    document.getElementById("slider-block").style.display = "block";
-    updateRoute(streamId, 0.5);
-    document.getElementById("slider").oninput = (e) => updateRoute(streamId, parseFloat(e.target.value));
-  }
+  return binary ? response.blob() : response.json();
 }
-
-async function updateRoute(streamId, w) {
-  const res = await fetch(`${API}/streams/${streamId}/route?w=${w}`);
-  if (!res.ok) { document.getElementById("routing").innerHTML = `<div class="muted">Route not available yet.</div>`; return; }
-  const body = await res.json();
-  const routing = body.routing;
-  const receipt = body.receipt;
-
-  document.getElementById("routing").innerHTML = `
-    <div class="muted">${routing.explanation}</div>
-    ${routing.candidates.map(c => `
-      <div class="candidate ${c.processor_id === routing.picked_processor_id ? "picked" : ""}">
-        <strong>${c.name}</strong> <span class="seeded-tag">seeded</span>
-        ${c.price_basis === "illustrative_assumption" ? '<span class="illustrative">(illustrative price)</span>' : ""}
-        <div class="muted">${c.distance_km} km &middot; ₹${c.price_per_kg_inr}/kg &middot; recovery_rate ${c.recovery_rate} (assumption)</div>
-        <div class="muted">net ₹${c.net_rupees?.toFixed(2)} &middot; net ${c.net_co2e_kg?.toFixed(2)} kg CO2e avoided</div>
-      </div>`).join("")}
-    ${routing.unscored_candidates.length ? `<div class="muted">${routing.unscored_candidates.length} eligible but unscored (${routing.unscored_candidates.map(c=>c.reason_unscored).join("; ")})</div>` : ""}
-    ${routing.review_required ? `<div class="status NEEDS_REVIEW" style="display:inline-block;margin-top:6px">needs human review</div>` : ""}
-  `;
-
-  document.getElementById("receipt").innerHTML = `
-    <div class="candidate">
-      <strong>Counterfactual receipt</strong>
-      <div class="muted">${receipt.default_case.label}: ₹${receipt.default_case.value_inr} / ${receipt.default_case.co2e_kg} kg CO2e</div>
-      <div class="muted">${receipt.chosen_case.label}: ₹${receipt.chosen_case.value_inr?.toFixed?.(2) ?? receipt.chosen_case.value_inr} / ${receipt.chosen_case.co2e_kg?.toFixed?.(2) ?? receipt.chosen_case.co2e_kg} kg CO2e</div>
-      <div><strong>Diff: ₹${receipt.diff_rupees?.toFixed?.(2) ?? "n/a"} &middot; ${receipt.diff_co2e_kg?.toFixed?.(2) ?? "n/a"} kg CO2e</strong></div>
-      ${receipt.price_range ? `<div class="muted">Price range: ₹${receipt.price_range.low_inr_per_kg}-${receipt.price_range.high_inr_per_kg}/kg, source: ${receipt.price_range.source} (${receipt.price_range.as_of})</div>` : '<div class="muted">No sourced price range for this material.</div>'}
-      <div class="muted">CO2e factor: ${receipt.emission_factor_available ? `${receipt.emission_factor_source} -- ${receipt.emission_factor_label}` : "not available for this material"}</div>
-    </div>`;
-
-  window._lastPickedProcessor = routing.picked_processor_id;
+const send = (method, value) => ({ method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(value) });
+function controls() {
+  const saved = currentStream?.routing?.[index()];
+  const dirty = Number(el("slider").value) !== (saved?.slider_w ?? 0.5);
+  el("save-route-btn").disabled = !dirty || !chosen(preview?.routing) || !["ROUTED", "NEEDS_REVIEW"].includes(currentStream?.status);
+  el("request-pickup-btn").disabled = dirty || currentStream?.status !== "ROUTED" || !chosen(saved);
 }
-
-document.getElementById("request-pickup-btn").onclick = async () => {
-  if (!currentStreamId || !window._lastPickedProcessor) return;
-  const res = await fetch(`${API}/streams/${currentStreamId}/draft-message?processor_id=${window._lastPickedProcessor}`, { method: "POST" });
-  const body = await res.json();
-  document.getElementById("draft-message").innerHTML = `
-    <pre>${body.draft_message}</pre>
-    <div class="muted"><strong>${body.label}</strong></div>`;
+async function signIn() {
+  const session = await request("/session");
+  el("org").replaceChildren(...session.orgs.map((org) => new Option(org.name, org.id)));
+  el("submit-section").hidden = false;
+  el("signin").hidden = true; el("signout").hidden = false;
+  el("tamper-btn").hidden = session.role !== "admin";
+  el("session-status").textContent = `${session.subject} (${session.role})`;
+  sessionStorage.setItem("loopback-token", token);
+}
+el("signin").onsubmit = async (event) => {
+  event.preventDefault(); token = el("credential").value.trim();
+  try { await signIn(); el("credential").value = ""; }
+  catch (error) { token = ""; sessionStorage.removeItem("loopback-token"); show("session-status", error.message); }
 };
-
-document.getElementById("verify-btn").onclick = async () => {
-  const id = document.getElementById("verify-id").value;
-  if (!id) return;
-  const res = await fetch(`${API}/verify/${id}`);
-  const body = await res.json();
-  document.getElementById("verify-result").innerHTML = body.ok
-    ? `<div class="ok-green">OK -- ${body.links} link(s), chain intact.</div>`
-    : `<div class="ok-red">BROKEN at link ${body.first_broken} of ${body.links}.</div>`;
+el("signout").onclick = () => {
+  clearTimeout(timer); routeGeneration++; token = ""; currentStream = null;
+  sessionStorage.removeItem("loopback-token");
+  el("signin").hidden = false; el("signout").hidden = true;
+  el("submit-section").hidden = true; el("result-section").style.display = "none";
+  el("tamper-btn").hidden = true; el("session-status").textContent = "Signed out";
 };
-
-document.getElementById("tamper-btn").onclick = async () => {
-  const id = document.getElementById("verify-id").value;
-  if (!id) return;
-  const res = await fetch(`${API}/dev/tamper/${id}?link_no=1`, { method: "POST" });
-  if (res.status === 403) { alert("Dev tools disabled in this environment."); return; }
-  alert("Tampered link 1. Click Verify again.");
+async function jpeg(file) {
+  const image = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, 1280 / Math.max(image.width, image.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(image.width * scale); canvas.height = Math.round(image.height * scale);
+    canvas.getContext("2d").drawImage(image, 0, 0, canvas.width, canvas.height);
+    return await new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error("Cannot resize photo")), "image/jpeg", 0.85));
+  } finally { image.close(); }
+}
+el("submit-btn").onclick = async () => {
+  el("submit-btn").disabled = true;
+  clearTimeout(timer); routeGeneration++; currentStream = null;
+  el("result-section").style.display = "none"; el("slider-block").style.display = "none";
+  try {
+    const files = Array.from(el("photo").files);
+    if (!files.length || files.length > 4) throw new Error("Choose 1–4 photos");
+    const weight = el("quantity").value ? Number(el("quantity").value) : null;
+    if (weight !== null && (!Number.isFinite(weight) || weight <= 0)) throw new Error("Weight must be positive");
+    show("submit-status", "Uploading…");
+    const photos = await Promise.all(files.map(jpeg));
+    const targets = await request("/uploads", send("POST", { count: photos.length, org_id: el("org").value, sizes: photos.map((photo) => photo.size) }));
+    for (let i = 0; i < targets.length; i++) {
+      if (/^https?:\/\//.test(targets[i].url)) {
+        const response = await fetch(targets[i].url, { method: "PUT", headers: { "Content-Type": "image/jpeg", "If-None-Match": "*" }, body: photos[i] });
+        if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
+      } else await request(targets[i].url, { method: "PUT", body: photos[i] });
+    }
+    const { stream_id } = await request("/streams", send("POST", { org_id: el("org").value, note: el("note").value,
+      quantity_kg: weight, pincode: el("pincode").value, photo_keys: targets.map((target) => target.key) }));
+    el("verify-id").value = stream_id;
+    await poll(stream_id);
+  } catch (error) { show("submit-status", error.message); el("submit-btn").disabled = false; }
 };
-
-loadProcessors();
+async function poll(id) {
+  try {
+    const stream = await request(`/streams/${encodeURIComponent(id)}`);
+    currentStream = stream;
+    el("result-section").style.display = "block";
+    el("status-badge").textContent = stream.status;
+    show("submit-status", stream.error || stream.status);
+    if (["SUBMITTED", "CHARACTERIZING"].includes(stream.status)) { timer = setTimeout(() => poll(id), 2000); return; }
+    el("submit-btn").disabled = false;
+    show("characterization", stream.characterization || stream.error || "No characterization");
+    if (stream.characterization?.items?.length) {
+      el("item").replaceChildren(...stream.characterization.items.map((item, i) => new Option(`${i + 1}: ${item.material}`, i)));
+      el("slider-block").style.display = "block";
+      selectItem();
+    }
+  } catch (error) { show("submit-status", error.message); el("submit-btn").disabled = false; }
+}
+function selectItem() {
+  el("slider").value = currentStream.routing?.[index()]?.slider_w ?? 0.5;
+  el("draft-message").replaceChildren(); updateRoute();
+}
+async function updateRoute() {
+  const generation = ++routeGeneration;
+  controls();
+  try {
+    const body = await request(`/streams/${currentStream.stream_id}/route?w=${el("slider").value}&item_index=${index()}`);
+    if (generation !== routeGeneration) return;
+    preview = body; show("routing", body.routing); show("receipt", body.receipt); controls();
+  } catch (error) { if (generation === routeGeneration) show("routing", error.message); }
+}
+el("item").onchange = selectItem;
+el("slider").oninput = updateRoute;
+el("save-route-btn").onclick = async () => {
+  el("save-route-btn").disabled = true;
+  const itemIndex = index();
+  try {
+    const body = await request(`/streams/${currentStream.stream_id}/route`, send("PUT", { w: Number(el("slider").value), item_index: itemIndex }));
+    currentStream.routing[itemIndex] = body.routing; currentStream.receipts[itemIndex] = body.receipt;
+    preview = body; show("routing", body.routing); show("receipt", body.receipt);
+  } catch (error) { show("routing", error.message); }
+  finally { controls(); }
+};
+el("request-pickup-btn").onclick = async () => {
+  el("request-pickup-btn").disabled = true;
+  try {
+    const buyer = chosen(currentStream.routing[index()]);
+    show("draft-message", await request(`/streams/${currentStream.stream_id}/draft-message?processor_id=${encodeURIComponent(buyer)}&item_index=${index()}`, { method: "POST" }));
+  } catch (error) { show("draft-message", error.message); }
+  finally { controls(); }
+};
+el("pdf-btn").onclick = async () => {
+  try {
+    const url = URL.createObjectURL(await request(`/streams/${currentStream.stream_id}/report`, {}, true));
+    const link = document.createElement("a"); link.href = url; link.download = `loopback-${currentStream.stream_id}.pdf`; link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) { show("receipt", error.message); }
+};
+el("verify-btn").onclick = async () => {
+  try { show("verify-result", await request(`/verify/${encodeURIComponent(el("verify-id").value)}`)); }
+  catch (error) { show("verify-result", error.message); }
+};
+el("tamper-btn").onclick = async () => {
+  try { show("verify-result", await request(`/dev/tamper/${encodeURIComponent(el("verify-id").value)}`, { method: "POST" })); }
+  catch (error) { show("verify-result", error.message); }
+};
+request("/processors").then((processors) => show("processors-list", processors)).catch((error) => show("processors-list", error.message));
+if (token) signIn().catch((error) => { token = ""; sessionStorage.removeItem("loopback-token"); show("session-status", error.message); });
 </script>
 </body>
 </html>

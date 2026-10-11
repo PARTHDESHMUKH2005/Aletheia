@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api.js";
+import { useSession } from "../components/Session.jsx";
 
 export default function Verify() {
+  const { principal } = useSession();
   const { chainId: chainIdFromUrl } = useParams();
   const [chainId, setChainId] = useState(chainIdFromUrl || "");
   const [result, setResult] = useState(null);
@@ -48,9 +50,9 @@ export default function Verify() {
         </button>
       </div>
 
-      <button onClick={doTamper} className="text-xs underline text-gray-500 mb-4">
+      {principal?.role === "admin" && <button onClick={doTamper} className="text-xs underline text-gray-500 mb-4">
         Tamper link 1 (demo tool -- disabled when ENV=production)
-      </button>
+      </button>}
 
       {error && <div className="text-sm text-red-600">{error}</div>}
 
@@ -60,7 +62,7 @@ export default function Verify() {
             <div className="text-green-700 font-semibold">OK -- {result.links} link(s), chain intact.</div>
           ) : (
             <div className="text-red-700 font-semibold">
-              BROKEN at link {result.first_broken} of {result.links}.
+              {result.links === 0 ? "No ledger entries recorded." : `Unverified at link ${result.first_broken} of ${result.links} (damaged or legacy format).`}
             </div>
           )}
         </div>

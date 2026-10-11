@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import Icon from "./Icon.jsx";
+import { useSession } from "./Session.jsx";
 
 const groups = [
   { label: "Workspace", items: [
@@ -17,6 +18,7 @@ const groups = [
 const names = { dashboard: "Overview", passports: "Waste Passports", streams: "Processing Result", map: "Traceability Map", review: "Review Queue", verify: "Verify Records" };
 
 export default function AppLayout({ children }) {
+  const { principal, signOut } = useSession();
   const [collapsed, setCollapsed] = useState(false);
   const [open, setOpen] = useState(false);
   const menuRef = useRef(null);
@@ -44,7 +46,7 @@ export default function AppLayout({ children }) {
         <nav className="lb-sidebar-nav" aria-label="Main navigation">
           {groups.map(group => <div className="lb-nav-group" key={group.label}>
             <p className="lb-expanded">{group.label}</p>
-            {group.items.map(item => <NavLink key={item.to} to={item.to} end={item.to === "/"}
+            {group.items.filter(item => item.to !== "/review" || principal?.role !== "operator").map(item => <NavLink key={item.to} to={item.to} end={item.to === "/"}
               title={item.label} onClick={() => setOpen(false)}
               className={({ isActive }) => `lb-nav-link ${isActive ? "lb-active" : ""}`}>
               <Icon name={item.icon} /><span className="lb-expanded">{item.label}</span>
@@ -53,7 +55,8 @@ export default function AppLayout({ children }) {
         </nav>
         <div className="lb-sidebar-bottom">
           <div className="lb-system-status lb-expanded"><span /><div><strong>Live passports</strong><p>Updates after each upload</p></div></div>
-          <div className="lb-account-row"><span className="lb-avatar">LB</span><div className="lb-expanded"><strong>Local workspace</strong><span>LoopBack demo</span></div></div>
+          <div className="lb-account-row"><span className="lb-avatar">LB</span><div className="lb-expanded"><strong>{principal?.subject || "Public verification"}</strong><span>LoopBack workspace</span></div></div>
+          {principal && <button className="lb-collapse-button" onClick={signOut}>Sign out</button>}
           <button className="lb-collapse-button" aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-expanded={!collapsed} onClick={() => setCollapsed(value => !value)}>
             <Icon name="chevron" size={17} /><span className="lb-expanded">Collapse sidebar</span>

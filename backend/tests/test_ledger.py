@@ -1,4 +1,6 @@
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from pathlib import Path
 
 import pytest
@@ -46,8 +48,8 @@ def test_verify_passes_on_a_clean_chain(storage):
     assert result == {"ok": True, "links": 3, "first_broken": None}
 
 
-def test_verify_on_empty_chain_is_ok(storage):
-    assert ledger.verify(storage, "nonexistent") == {"ok": True, "links": 0, "first_broken": None}
+def test_verify_on_empty_chain_is_not_verified(storage):
+    assert ledger.verify(storage, "nonexistent") == {"ok": False, "links": 0, "first_broken": None}
 
 
 def test_verify_fails_after_tampering_payload(storage):
@@ -93,3 +95,41 @@ def test_non_storage_device_moves_freely(storage):
     ledger.record_handoff(storage, "stream2", "proc1", "requested", scrap)
     entry = ledger.record_handoff(storage, "stream2", "proc1", "matched", scrap)
     assert entry["event"] == "handoff_matched"
+
+
+def test_concurrent_verification_accepts_only_one_final_weight(tmp_path):
+    stores = [LocalStorage(db_path=tmp_path / "shared.db") for _ in range(2)]
+    item = make_item(material="steel_scrap", is_storage_device=False)
+    ledger.record_handoff(stores[0], "stream", "proc1", "matched", item)
+    barrier = Barrier(2)
+
+    def verify_once(store, weight):
+        insert = store.append_ledger_entry
+        first_attempt = True
+
+        def synchronized_insert(entry):
+            nonlocal first_attempt
+            if first_attempt:
+                first_attempt = False
+                barrier.wait(timeout=10)
+            return insert(entry)
+
+        store.append_ledger_entry = synchronized_insert
+        try:
+            return ledger.record_handoff(store, "stream", "proc1", "verified", item, {"weight_kg": weight})
+        except PermissionError:
+            return None
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(verify_once, store, weight) for store, weight in zip(stores, (5, 500))]
+        results = [future.result(timeout=15) for future in futures]
+    assert sum(result is not None for result in results) == 1
+    assert [entry["event"] for entry in stores[0].get_ledger_chain("stream")] == ["handoff_matched", "handoff_verified"]
+    assert ledger.verify(stores[0], "stream")["ok"]
+
+
+def test_legacy_unscoped_wipe_does_not_unlock_multi_item_handoff(storage):
+    storage.create_stream("stream", {"characterization": {"items": [make_item().model_dump()] * 2}})
+    ledger.append(storage, "stream", "data_wipe_confirmed", {})
+    with pytest.raises(PermissionError):
+        ledger.record_handoff(storage, "stream", "proc1", "matched", make_item())

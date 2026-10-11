@@ -1,15 +1,16 @@
 """Storage interface implemented by local.py (SQLite + disk) and aws.py (DynamoDB + S3).
 
-Phase 1 scope: streams and the image-hash cache (what characterize.py needs).
-Phase 3 scope: ledger and upload URL methods are added to this interface then,
-mirroring section 4's table list (organizations/processors/rules/prices/co2 are
-static JSON, loaded once -- they are not part of this interface).
+Streams, characterization cache, uploads and ledger operations share one interface.
+Organizations/processors/rules/prices/factors are static JSON loaded at startup.
 """
 from abc import ABC, abstractmethod
 from typing import Any
 
 
 class Storage(ABC):
+    def upload_url(self, key: str, size: int | None = None) -> str:
+        return f"/local-uploads/{key}"
+
     @abstractmethod
     def create_stream(self, stream_id: str, data: dict[str, Any]) -> None: ...
 
@@ -55,7 +56,9 @@ class Storage(ABC):
         ...
 
     @abstractmethod
-    def save_upload(self, key: str, data: bytes) -> None: ...
+    def save_upload(self, key: str, data: bytes) -> None:
+        """Create a complete photo once; raise FileExistsError if the key exists."""
+        ...
 
     @abstractmethod
     def read_upload(self, key: str) -> bytes: ...

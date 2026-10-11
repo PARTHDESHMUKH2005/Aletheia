@@ -5,12 +5,15 @@ gitignored, created on first use. Not shared with the data/ directory, which
 holds only the static JSON shipped with the repo (rules, processors, etc.).
 """
 import json
+import os
 import sqlite3
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
 
 from app.storage.base import Storage
+from app.uploads import MAX_UPLOAD_BYTES, validate_upload_key
 
 _LOCAL_DATA_DIR = Path(__file__).resolve().parent.parent.parent / ".local_data"
 _DB_PATH = _LOCAL_DATA_DIR / "loopback.db"
@@ -33,6 +36,7 @@ CREATE TABLE IF NOT EXISTS ledger (
     prev_hash TEXT NOT NULL,
     entry_hash TEXT NOT NULL,
     ts TEXT NOT NULL,
+    hash_version INTEGER NOT NULL DEFAULT 2,
     PRIMARY KEY (chain_id, link_no)
 );
 """
@@ -44,15 +48,38 @@ class LocalStorage(Storage):
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)  # agent tools run on worker threads; agent.py serialises them
         self._conn.executescript(_SCHEMA)
+        if "hash_version" not in {r[1] for r in self._conn.execute("PRAGMA table_info(ledger)")}:
+            self._conn.execute("ALTER TABLE ledger ADD COLUMN hash_version INTEGER NOT NULL DEFAULT 1")
         self._conn.commit()
         self.uploads_dir = uploads_dir or (self.db_path.parent / "uploads")
         self.uploads_dir.mkdir(parents=True, exist_ok=True)
 
     def save_upload(self, key: str, data: bytes) -> None:
-        (self.uploads_dir / key).write_bytes(data)
+        path = self._upload_path(key)
+        if not data or len(data) > MAX_UPLOAD_BYTES:
+            raise ValueError("invalid upload size")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        # Publish a complete file atomically, with no window for replacing an
+        # existing key or reading a partially written photo.
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".upload-", delete=False) as photo:
+                temporary = Path(photo.name)
+                photo.write(data)
+            os.link(temporary, path)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
 
     def read_upload(self, key: str) -> bytes:
-        return (self.uploads_dir / key).read_bytes()
+        return self._upload_path(key).read_bytes()
+
+    def _upload_path(self, key: str) -> Path:
+        validate_upload_key(key)
+        path = (self.uploads_dir / key).resolve()
+        if not path.is_relative_to(self.uploads_dir.resolve()):
+            raise ValueError("photo key escapes upload directory")
+        return path
 
     def create_stream(self, stream_id: str, data: dict[str, Any]) -> None:
         self._conn.execute(
@@ -110,7 +137,7 @@ class LocalStorage(Storage):
 
     def get_ledger_head(self, chain_id: str) -> dict[str, Any] | None:
         row = self._conn.execute(
-            "SELECT chain_id, link_no, event, payload_json, prev_hash, entry_hash, ts "
+            "SELECT chain_id, link_no, event, payload_json, prev_hash, entry_hash, ts, hash_version "
             "FROM ledger WHERE chain_id = ? ORDER BY link_no DESC LIMIT 1",
             (chain_id,),
         ).fetchone()
@@ -119,21 +146,22 @@ class LocalStorage(Storage):
     def append_ledger_entry(self, entry: dict[str, Any]) -> bool:
         try:
             self._conn.execute(
-                "INSERT INTO ledger (chain_id, link_no, event, payload_json, prev_hash, entry_hash, ts) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO ledger (chain_id, link_no, event, payload_json, prev_hash, entry_hash, ts, hash_version) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     entry["chain_id"], entry["link_no"], entry["event"],
-                    entry["payload_json"], entry["prev_hash"], entry["entry_hash"], entry["ts"],
+                    entry["payload_json"], entry["prev_hash"], entry["entry_hash"], entry["ts"], entry["hash_version"],
                 ),
             )
             self._conn.commit()
             return True
         except sqlite3.IntegrityError:
+            self._conn.rollback()
             return False
 
     def get_ledger_chain(self, chain_id: str) -> list[dict[str, Any]]:
         rows = self._conn.execute(
-            "SELECT chain_id, link_no, event, payload_json, prev_hash, entry_hash, ts "
+            "SELECT chain_id, link_no, event, payload_json, prev_hash, entry_hash, ts, hash_version "
             "FROM ledger WHERE chain_id = ? ORDER BY link_no ASC",
             (chain_id,),
         ).fetchall()
@@ -143,5 +171,5 @@ class LocalStorage(Storage):
     def _row_to_entry(row) -> dict[str, Any]:
         return {
             "chain_id": row[0], "link_no": row[1], "event": row[2],
-            "payload_json": row[3], "prev_hash": row[4], "entry_hash": row[5], "ts": row[6],
+            "payload_json": row[3], "prev_hash": row[4], "entry_hash": row[5], "ts": row[6], "hash_version": row[7],
         }
