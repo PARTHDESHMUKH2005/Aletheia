@@ -98,7 +98,7 @@ export default function Passport() {
   if (!streamId) {
     return <div>
       <div className="lb-demo-notice"><Icon name="passport" size={17} />
-        <p>No waste has been uploaded from this browser yet. <Link to="/">Upload a photo</Link> and its passport will appear here, filled in live. Below is a sample record.</p>
+        <p>No waste has been uploaded from this browser yet. <Link to="/app">Upload a photo</Link> and its passport will appear here, filled in live. Below is a sample record.</p>
       </div>
       <PassportSample />
     </div>;
@@ -106,7 +106,7 @@ export default function Passport() {
   if (error) {
     return <div className="lb-passport-page"><PageHeader title="Waste Passport" description="A waste stream's identity and traceability record." />
       <SectionCard title="Passport unavailable"><p className="lb-note">{error}</p>
-        <Link className="lb-button lb-button-primary" to="/">Upload waste</Link></SectionCard></div>;
+        <Link className="lb-button lb-button-primary" to="/app">Upload waste</Link></SectionCard></div>;
   }
   if (!stream) return <div className="lb-passport-page"><PageHeader title="Waste Passport" description="Loading…" /></div>;
 

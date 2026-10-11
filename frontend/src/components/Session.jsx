@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { api, getToken, setToken } from "../api.js";
 
 const SessionContext = createContext(null);
@@ -7,6 +7,7 @@ export const useSession = () => useContext(SessionContext);
 
 export default function Session({ children }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [principal, setPrincipal] = useState(null);
   const [checking, setChecking] = useState(Boolean(getToken()));
   const [credential, setCredential] = useState("");
@@ -30,7 +31,8 @@ export default function Session({ children }) {
       setToken(credential.trim());
       localStorage.removeItem("lb:recentStreams");
       setCredential(""); setPrincipal(value);
-    } catch (err) { setError(err.message); }
+      navigate("/dashboard");
+    } catch (err) { setError(err.message.startsWith("401") ? "That access credential isn't valid. Check it and try again." : err.message); }
     finally { setChecking(false); }
   }
 

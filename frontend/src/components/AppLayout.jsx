@@ -6,7 +6,7 @@ import { useSession } from "./Session.jsx";
 const groups = [
   { label: "Workspace", items: [
     { label: "Overview", to: "/dashboard", icon: "dashboard" },
-    { label: "Upload Waste", to: "/", icon: "upload" },
+    { label: "Upload Waste", to: "/app", icon: "upload" },
     { label: "Waste Passports", to: "/passports", icon: "passport" },
     { label: "Traceability Map", to: "/map", icon: "map" },
   ] },
@@ -15,7 +15,7 @@ const groups = [
     { label: "Review Queue", to: "/review", icon: "review" },
   ] },
 ];
-const names = { dashboard: "Overview", passports: "Waste Passports", streams: "Processing Result", map: "Traceability Map", review: "Review Queue", verify: "Verify Records" };
+const names = { app: "Upload Waste", dashboard: "Overview", passports: "Waste Passports", streams: "Processing Result", map: "Traceability Map", review: "Review Queue", verify: "Verify Records" };
 
 export default function AppLayout({ children }) {
   const { principal, signOut } = useSession();
@@ -74,6 +74,7 @@ export default function AppLayout({ children }) {
             </span>) : <span><Icon name="chevron" size={13} /><span aria-current="page">Upload Waste</span></span>}
           </nav>
           <div className="lb-topbar-actions">
+            <Link to="/about" className="lb-button lb-button-secondary">About</Link>
             <label className="lb-global-search"><Icon name="search" size={15} />
               <span className="sr-only">Search records (not available in this preview)</span>
               <input disabled placeholder="Search records" title="Search is unavailable in this UI preview" />

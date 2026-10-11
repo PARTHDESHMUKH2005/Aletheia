@@ -14,7 +14,7 @@ export default function App() {
   return (
     <Session><AppLayout>
         <Routes>
-          <Route path="/" element={<Upload />} />
+          <Route path="/app" element={<Upload />} />
           <Route path="/streams/:streamId" element={<Result />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/dashboard" element={<Dashboard />} />

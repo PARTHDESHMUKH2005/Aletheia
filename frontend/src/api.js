@@ -6,7 +6,13 @@ export const setToken = (token) => token ? sessionStorage.setItem("loopback-toke
 async function request(path, options = {}, asBlob = false) {
   const headers = new Headers(options.headers);
   if (!headers.has("Authorization") && getToken()) headers.set("Authorization", `Bearer ${getToken()}`);
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  } catch {
+    // Browsers report an unreachable server as "Load failed" / "Failed to fetch".
+    throw new Error("Can't reach the server. Check that the backend is running, then try again.");
+  }
   if (!res.ok) {
     let detail = res.statusText;
     try {
