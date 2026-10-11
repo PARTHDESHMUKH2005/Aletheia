@@ -130,8 +130,8 @@ def test_api_rejects_unknown_and_missing_pincode_with_422():
         assert "Pincode not in demo data" in resp.json()["detail"]
 
 
-def test_demo_readme_states_coordinates_are_approximate_area_centres():
-    readme = (Path(__file__).resolve().parents[2] / "README.md").read_text().lower()
+def test_demo_data_doc_states_coordinates_are_approximate_area_centres():
+    readme = (Path(__file__).resolve().parents[2] / "docs" / "DEMO_DATA.md").read_text().lower()
     assert "approximate area centres" in readme
 
 
