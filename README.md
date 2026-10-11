@@ -1,6 +1,6 @@
 <div align="center">
 
-# ♻️ Invictus
+# ♻️ Aletheia
 
 ### Snap a photo of waste. Compare buyers, projected money and CO₂ savings, with a verifiable record.
 
@@ -40,7 +40,7 @@ Money and carbon are also treated as separate questions. The highest bidder may 
 
 ## 💡 The solution
 
-**LoopBack** is an agent that handles the whole journey from a photo to a proof of handoff:
+**Aletheia** is an agent that handles the whole journey from a photo to a proof of handoff:
 
 1.  **Characterize.** Gemini vision identifies the material, purity, hazard flag and a confidence score from a photo.
 2.  **Apply the rules.** It looks up the app's rule record for the material and the handler requirements to check.
@@ -156,6 +156,6 @@ Photos are uploaded once per key: a second local PUT returns 409, and cloud PUTs
 
 <div align="center">
 
-*Built for the WeMakeDevs × AWS Hackathon. LoopBack routes and records, and it does not certify compliance.*
+*Built for the WeMakeDevs × AWS Hackathon. Aletheia routes and records, and it does not certify compliance.*
 
 </div>
