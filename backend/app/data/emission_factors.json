@@ -89,23 +89,23 @@
     },
     {
       "material": "paper",
-      "warm_row": null,
-      "recycle_kg_per_kg": null,
-      "landfill_kg_per_kg": null,
-      "avoided_kg_per_kg": 3.3,
-      "source": "EPA WARM, mixed paper (rough order-of-magnitude estimate from general knowledge, NOT from the Metals.pdf/warm_electronics_v16 sources above, not a live table lookup)",
-      "verified": false,
-      "notes": "Unsourced estimate -- replace with a real WARM table citation before using in the pitch."
+      "warm_row": "Mixed Paper (general)",
+      "recycle_kg_per_kg": -3.913,
+      "landfill_kg_per_kg": 0.077,
+      "avoided_kg_per_kg": 3.99,
+      "source": "US EPA WARM v16 Paper Products, Exhibit 3-7 (Dec 2023), https://www.epa.gov/system/files/documents/2023-12/warm_containers_packaging_and_non-durable_goods_materials_v16_dec.pdf; MTCO2e/short ton converted to kg CO2e/kg; US proxy, not India-specific",
+      "verified": true,
+      "notes": "Net landfill emissions (0.07) minus net recycling emissions (-3.55), converted from MTCO2e/short ton using 1000/907.185. Mixed Paper (general) is a proxy for ungraded paper; WARM values are US-specific and not an India inventory factor."
     },
     {
       "material": "cardboard",
-      "warm_row": null,
-      "recycle_kg_per_kg": null,
-      "landfill_kg_per_kg": null,
-      "avoided_kg_per_kg": 3.1,
-      "source": "EPA WARM, corrugated containers (rough order-of-magnitude estimate from general knowledge, not a live table lookup)",
-      "verified": false,
-      "notes": "Unsourced estimate -- replace with a real WARM table citation before using in the pitch."
+      "warm_row": "Corrugated Containers",
+      "recycle_kg_per_kg": -3.461,
+      "landfill_kg_per_kg": 0.198,
+      "avoided_kg_per_kg": 3.659,
+      "source": "US EPA WARM v16 Paper Products, Exhibit 3-7 (Dec 2023), https://www.epa.gov/system/files/documents/2023-12/warm_containers_packaging_and_non-durable_goods_materials_v16_dec.pdf; MTCO2e/short ton converted to kg CO2e/kg; US proxy, not India-specific",
+      "verified": true,
+      "notes": "Net landfill emissions (0.18) minus net recycling emissions (-3.14), converted from MTCO2e/short ton using 1000/907.185. Corrugated Containers is a proxy for clean corrugated cardboard; WARM values are US-specific and not an India inventory factor."
     },
     {
       "material": "mixed_metal",
