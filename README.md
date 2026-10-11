@@ -1,6 +1,6 @@
 <div align="center">
 
-# ♻️ LoopBack
+# ♻️ Invictus
 
 ### Snap a photo of waste. Compare buyers, projected money and CO₂ savings, with a verifiable record.
 
