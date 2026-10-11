@@ -28,7 +28,7 @@ Waste generators often lack a clear material inventory, current handler informat
 - **Nobody knows who to call.** Scrap goes to whichever dealer is nearest, at whatever price they offer.
 - **Nobody can prove where it went.** Applicable waste rules can impose registration, handling and record-keeping duties. Exact obligations depend on the material and generator; see [`RULES.md`](RULES.md). Records are often scattered and difficult to verify.
 
-## 😣 The pain
+## The pain
 
 | Who | What hurts |
 |---|---|
@@ -42,12 +42,12 @@ Money and carbon are also treated as separate questions. The highest bidder may 
 
 **LoopBack** is an agent that handles the whole journey from a photo to a proof of handoff:
 
-1. 📸 **Characterize.** Gemini vision identifies the material, purity, hazard flag and a confidence score from a photo.
-2. 📜 **Apply the rules.** It looks up the app's rule record for the material and the handler requirements to check.
-3. 🎚️ **Route with a slider.** One control runs from *more money* to *less carbon*. Buyers are ranked by net ₹/kg and net CO₂e/kg, with transport cost and emissions included.
-4. 🧾 **Show the receipt.** It reports money earned and CO₂e avoided against the throw-it-away baseline.
-5. 🔗 **Record it.** Every handoff goes into a SHA-256 hash-chained ledger that anyone can re-verify. The result is a shareable **Waste Passport**.
-6. 🧑‍⚖️ **Keep a human in the loop.** Low-confidence, hazardous or out-of-scope items go to a review queue instead of being auto-routed.
+1.  **Characterize.** Gemini vision identifies the material, purity, hazard flag and a confidence score from a photo.
+2.  **Apply the rules.** It looks up the app's rule record for the material and the handler requirements to check.
+3.  **Route with a slider.** One control runs from *more money* to *less carbon*. Buyers are ranked by net ₹/kg and net CO₂e/kg, with transport cost and emissions included.
+4.  **Show the receipt.** It reports money earned and CO₂e avoided against the throw-it-away baseline.
+5.  **Record it.** Every handoff goes into a SHA-256 hash-chained ledger that anyone can re-verify. The result is a shareable **Waste Passport**.
+6.  **Keep a human in the loop.** Low-confidence, hazardous or out-of-scope items go to a review queue instead of being auto-routed.
 
 ```
  Photo + pincode ──► Gemini characterizes ──► Rules + guardrails ──► Carbon-aware matching
