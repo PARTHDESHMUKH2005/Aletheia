@@ -71,9 +71,10 @@ def main() -> None:
     if pick_money["picked_processor_id"] == pick_carbon["picked_processor_id"]:
         print(
             "Same pick at both extremes -- this material currently has only one "
-            "seeded processor with both a sourced price AND a sourced CO2e factor "
-            "(see data/processors.json / data/prices.json / data/co2.json), so "
-            "there's nothing to trade off against yet. tests/test_matching.py "
+            "seeded processor with both a price and an emission factor "
+            "(see backend/app/data/processors.json / backend/app/data/prices.json / "
+            "backend/app/data/emission_factors.json), so there's nothing to trade "
+            "off against yet. backend/tests/test_matching.py "
             "proves the slider mechanism itself works, with two synthetic processors."
         )
 

@@ -8,7 +8,7 @@ export default function Upload() {
   const navigate = useNavigate();
   const { orgs: ORGS } = useSession();
   const [orgId, setOrgId] = useState(ORGS[0].id);
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [note, setNote] = useState("");
   const [quantity, setQuantity] = useState("");
   const [pincode, setPincode] = useState("");
@@ -19,23 +19,31 @@ export default function Upload() {
   async function handleSubmit(e) {
     e.preventDefault();
     if (submittingRef.current) return;
-    if (!file) {
-      setError("Pick a photo first.");
+    if (!files.length) {
+      setError("Pick at least one photo.");
+      return;
+    }
+    if (files.length > 4) {
+      setError("Choose no more than four photos.");
       return;
     }
     submittingRef.current = true;
     setBusy(true);
     setError(null);
     try {
-      const resized = await resizeImageToJpeg(file);
-      const [target] = await api.createUploadTargets(1, orgId, [resized.size]);
-      await api.putUpload(target.url, resized);
+      const resizedPhotos = await Promise.all(files.map((file) => resizeImageToJpeg(file)));
+      const targets = await api.createUploadTargets(
+        resizedPhotos.length,
+        orgId,
+        resizedPhotos.map((photo) => photo.size),
+      );
+      await Promise.all(targets.map((target, index) => api.putUpload(target.url, resizedPhotos[index])));
 
       const { stream_id } = await api.createStream({
         org_id: orgId,
         note,
         quantity_kg: quantity ? parseFloat(quantity) : null,
-        photo_keys: [target.key],
+        photo_keys: targets.map((target) => target.key),
         pincode: pincode || null,
       });
       rememberStream(stream_id);
@@ -68,13 +76,17 @@ export default function Upload() {
         </div>
 
         <div>
-          <label className="block text-xs text-gray-600 mb-1">Photo</label>
+          <label className="block text-xs text-gray-600 mb-1">Photos (up to 4)</label>
           <input
             type="file"
             accept="image/*"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            multiple
+            onChange={(e) => setFiles(Array.from(e.target.files || []))}
             className="w-full text-sm"
           />
+          <p className="mt-1 text-xs text-gray-500">
+            {files.length ? `${files.length} photo${files.length === 1 ? "" : "s"} selected` : "Select one to four photos."}
+          </p>
         </div>
 
         <div>

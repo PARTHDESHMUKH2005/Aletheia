@@ -57,11 +57,11 @@ Money and carbon are also treated as separate questions. The highest bidder may 
 
 ## 🏆 Why we stand out
 
-- **Carbon and money in one decision.** The slider, with real transport cost and emissions, makes the trade-off visible instead of hidden.
+- **Carbon and money in one decision.** The slider includes transport cost and emissions assumptions, making the trade-off visible. Demo factors are illustrative; see [`docs/DEMO_DATA.md`](docs/DEMO_DATA.md).
 - **Tamper-evident by design.** Each ledger entry hashes the previous one, so editing history breaks the chain and `/verify` shows it.
 - **Compliance-aware, not just clever.** Hazardous and unsure cases are refused or sent to human review. The agent knows what it should not do.
 - **Honest about its numbers.** Every figure is labelled *sourced* or *illustrative assumption*. We never present demo data as real.
-- **Tested.** Backend tests cover scoring, location, the agent and the API, and an `eval/` harness measures characterization against labelled photos.
+- **Test coverage.** Backend tests cover scoring, location, the agent and the API. An `eval/` harness can measure characterization against labelled photos; evaluation results have not yet been recorded.
 - **End to end.** It has a working API, an agent pipeline, a review queue, an e-waste workflow, an impact dashboard, a map and a public ledger verifier.
 
 ## 🌍 Impact
@@ -89,19 +89,23 @@ The **Impact Dashboard** aggregates this across an organization's streams. The l
 
 ## 🚀 Quick start
 
-```bash
-# From the repository root (Python 3.11+)
-python3 -m venv .venv
-.venv/bin/python -m pip install -r backend/requirements-dev.txt
-cp backend/.env.example backend/.env
-# Generates a random local administrator credential. Keep this file private.
-.venv/bin/python scripts/create_credentials.py --env-assignment >> backend/.env
-# Set GEMINI_API_KEY and your account's model IDs in backend/.env.
-cd backend
-../.venv/bin/python -m uvicorn app.main:app --reload
+PowerShell, from the repository root (Python 3.11+ and Node 20+):
 
-# Frontend (new terminal, from repository root; Node 20+)
-cd frontend
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python -m pip install -r backend/requirements-dev.txt
+Copy-Item backend/.env.example backend/.env
+# Generates a random local administrator credential. Keep this file private.
+.\.venv\Scripts\python scripts/create_credentials.py --env-assignment | Add-Content backend/.env
+# Set GEMINI_API_KEY and your account's model IDs in backend/.env.
+Set-Location backend
+..\.venv\Scripts\python -m uvicorn app.main:app --reload
+```
+
+In a second PowerShell window:
+
+```powershell
+Set-Location frontend
 npm ci
 npm run dev
 ```
@@ -110,12 +114,10 @@ Open the Vite URL and sign in using the `token` value from `API_TOKENS_JSON` in 
 
 `API_TOKENS_JSON` is a JSON array of `{token, subject, role, org_ids}` entries. `operator` can submit and record handoffs; `reviewer` can also review and record wipe certificates; `admin` can also use the local tamper demo. Each role is restricted to its listed organizations. The generator supports `--role`, `--subject` and repeated `--org` options. A missing or malformed credential configuration denies private access. Only processor/scoring data and ledger verification are public. Browser credentials stay in the current tab's session; never embed them in a frontend build.
 
-```bash
-# From repository root
-cd backend
-../.venv/bin/python -m pytest -q
-# New terminal, repository root
-cd frontend
+```powershell
+Set-Location backend
+..\.venv\Scripts\python -m pytest -q
+Set-Location ..\frontend
 npm test
 npm run build
 ```
