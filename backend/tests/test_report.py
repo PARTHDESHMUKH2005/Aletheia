@@ -65,7 +65,17 @@ def test_receipt_carries_emission_factor_source_and_proxy_label():
     assert receipt.emission_factor_source == "Metals.pdf Exhibit 7"
 
 
-def test_receipt_shows_unverified_label_for_unsourced_estimates():
+def test_receipt_shows_sourced_proxy_label_for_paper():
+    receipt = report.counterfactual_receipt(make_item(material="paper"), FAKE_ROUTING_WITH_PICK)
+    assert receipt.emission_factor_available is True
+    assert receipt.emission_factor_label == "US proxy, not India-specific"
+    assert "WARM" in receipt.emission_factor_source
+
+
+def test_receipt_shows_unverified_label_for_unsourced_estimates(monkeypatch):
+    monkeypatch.setitem(report._EMISSION_FACTORS, "paper", {
+        "material": "paper", "avoided_kg_per_kg": 3.3, "source": "rough estimate", "verified": False,
+    })
     receipt = report.counterfactual_receipt(make_item(material="paper"), FAKE_ROUTING_WITH_PICK)
     assert receipt.emission_factor_available is True
     assert "unverified estimate" in receipt.emission_factor_label

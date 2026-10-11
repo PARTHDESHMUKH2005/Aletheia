@@ -332,4 +332,4 @@ def test_paper_and_cardboard_route_and_slider_flips_within_250km(material):
     assert receipt.chosen_case.value_inr and receipt.chosen_case.value_inr > 0
     assert receipt.chosen_case.co2e_kg and receipt.chosen_case.co2e_kg > 0
     assert receipt.diff_rupees is not None and receipt.diff_co2e_kg is not None
-    assert "unverified" in receipt.emission_factor_label  # estimate stays labelled, not passed off as WARM
+    assert receipt.emission_factor_label == "US proxy, not India-specific"  # sourced WARM factor, labelled as a US proxy
