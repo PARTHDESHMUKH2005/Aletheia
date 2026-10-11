@@ -32,7 +32,7 @@ from app.models import Item
 from app.tools.geo import validate_point
 from app.tools.guardrails import authorization_label, needs_review, processor_authorized_for
 from app.tools.report import get_avoided_factor
-from app.tools.rules import lookup_rules
+from app.tools.rules import lookup_rules, unverified_label
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 _PROCESSORS: list[dict] = json.loads((_DATA_DIR / "processors.json").read_text())
@@ -302,6 +302,16 @@ def find_processors(
         "reference_scale": {"best_net_rupees_per_kg": best_money, "best_net_co2e_per_kg": best_carbon},
         "measures_treated_equal": {"money": money_equal and len(in_range) > 1, "carbon": carbon_equal and len(in_range) > 1},
         "rule_name": rule["rule_name"],
+        "compliance": {
+            "rule_name": rule["rule_name"],
+            "section_ref": rule.get("section_ref"),
+            "handler_requirement": rule["handler_requirement"],
+            "paperwork": rule["paperwork"],
+            "hazardous": rule.get("hazardous", False) or bool(item.hazardous),
+            "regulated": rule.get("regulated", False),
+            "verified": rule["verified"],
+            "unverified_label": unverified_label(rule),
+        },
         "review_required": review_required,
         "reuse_recommended_processor_id": reuse_processor_id,
     }

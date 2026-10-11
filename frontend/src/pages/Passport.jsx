@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { api, API_URL } from "../api.js";
 import Icon from "../components/Icon.jsx";
 import PassportMap from "../components/PassportMap.jsx";
+import ComplianceCard from "../components/ComplianceCard.jsx";
 import ContaminationMeter from "../components/ContaminationMeter.jsx";
 import { DetailList, PageHeader, SectionCard, StatusBadge, Timeline } from "../components/PassportUI.jsx";
 import { recentStreams } from "../lib/recent.js";
@@ -217,6 +218,10 @@ export default function Passport() {
           <PassportMap pickup={stream.pickup_location} picked={picked} others={others} candidates={routing?.candidates} />
         </SectionCard>
       </div>
+
+      {routing && !routing.refused && <SectionCard title="Compliance" action={<Icon name="lock" size={18} />}>
+        <ComplianceCard routing={routing} processor={picked} />
+      </SectionCard>}
 
       {stream.agent?.summary && <SectionCard title="Orchestrator summary" action={<StatusBadge tone="demo">AI agent</StatusBadge>}>
         <p className="lb-note">{stream.agent.summary}</p>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api } from "../api.js";
 import { rememberStream } from "../lib/recent.js";
+import ComplianceCard from "../components/ComplianceCard.jsx";
 import ContaminationMeter from "../components/ContaminationMeter.jsx";
 
 const STATUS_STYLE = {
@@ -228,6 +229,13 @@ export default function Result() {
           </div>
         );
       })()}
+
+      {item && route?.routing && (
+        <ComplianceCard
+          routing={route.routing}
+          processor={processors.find((p) => p.id === (route.routing.picked_processor_id || route.routing.reuse_recommended_processor_id))}
+        />
+      )}
 
       {route?.assessment && (
         <div className="border rounded-lg p-4 bg-white text-sm space-y-1">

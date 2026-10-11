@@ -30,6 +30,9 @@ def lookup_rules(material: str, hazardous: bool | None = None) -> dict:
     row = _RULES_BY_MATERIAL.get(material, _RULES_BY_MATERIAL["other"])
     return {
         "rule_name": row["rule_name"],
+        "section_ref": row.get("section_ref"),
+        "hazardous": row.get("hazardous", False),
+        "regulated": row.get("regulated", False),
         "handler_requirement": row["handler_requirement"],
         "paperwork": row["paperwork"],
         "review_required": row["review_required"],
