@@ -17,11 +17,11 @@ Per kg: `money = net ₹/kg ÷ best net ₹/kg`, `carbon = net CO2e/kg ÷ best n
 - Every processor `recovery_rate` (0.85 to 0.95 for recyclers) is an illustrative assumption, not measured.
 - Transport: ₹3 per tonne-km and 0.062 kg CO2e per tonne-km are unsourced assumptions.
 - Processor prices with `price_basis: "illustrative_assumption"` (aluminium, e-waste, the Ludhiana steel mill, the reuse centre) are placeholders, not market quotes.
-- CO2e factors are US EPA WARM values used as a proxy, not India-specific.
+- There are 16 emission-factor rows: eight match cited US EPA WARM source rows and eight are unverified or missing. Even the source-matched rows are US proxies, not India-specific factors. The paper and cardboard values are rough estimates, not verified WARM lookups; missing factors leave a candidate unscored.
 - Processors have no `authorization_ref`; every one is shown as "demo only, authorization not checked".
 
 ## Prices
-Prices with `price_basis: "sourced"` (steel HMS Mumbai, Jalna, Mandi Gobindgarh; copper armature scrap Delhi, Mumbai) were checked on 2026-10-10 against `dataset-resized/Raw Material Prices December 2024.pdf` (BigMint, ₹/tonne ÷ 1000). All five matched. They are city wholesale benchmarks, not quotes from the fictional buyers. The PDF prints "13 Dec" without a year; 2024 comes from its title. Nothing had to be downgraded.
+Prices with `price_basis: "sourced"` (steel HMS Mumbai, Jalna, Mandi Gobindgarh; copper armature scrap Delhi, Mumbai) were checked on 2026-10-10 against `dataset-resized/Raw Material Prices December 2024.pdf` (BigMint, ₹/tonne ÷ 1000). All five matched. They are city wholesale benchmarks, not quotes from the fictional buyers. The PDF prints "13 Dec" without a year; 2024 comes from its title.
 
-## Run the tests
-`cd backend && PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest` (an unrelated `web3` pytest plugin in some environments breaks collection otherwise).
+## Validation
+Use the platform-specific test commands in [README.md](../README.md#-quick-start) and the [build guide](../BUILD.md#local-validation). If an unrelated globally installed pytest plugin prevents collection, retry with plugin autoload disabled for that command.

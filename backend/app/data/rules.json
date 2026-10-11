@@ -1,15 +1,293 @@
 [
-  {"material": "aluminium_scrap", "hazardous": false, "regulated": false, "rule_name": "No specific rule for clean scrap", "section_ref": null, "handler_requirement": "scrap dealer or foundry", "paperwork": ["weighment slip", "ledger record"], "review_required": false, "basis": ["M", "P"], "key_requirements": ["Clean, non-hazardous scrap trades as ordinary scrap; no dedicated authorization found", "Contamination (batteries, oils, electronics, mercury items) changes the rule: re-route as hazardous or e-waste", "Keep a weighment slip and a transfer record for the handoff"]},
-  {"material": "steel_scrap", "hazardous": false, "regulated": false, "rule_name": "No specific rule for clean scrap", "section_ref": null, "handler_requirement": "scrap dealer or foundry", "paperwork": ["weighment slip", "ledger record"], "review_required": false, "basis": ["M", "P"], "key_requirements": ["Clean, non-hazardous scrap trades as ordinary scrap; no dedicated authorization found", "Contamination (batteries, oils, electronics, mercury items) changes the rule: re-route as hazardous or e-waste", "Keep a weighment slip and a transfer record for the handoff"]},
-  {"material": "copper_scrap", "hazardous": false, "regulated": false, "rule_name": "No specific rule for clean scrap", "section_ref": null, "handler_requirement": "scrap dealer or foundry", "paperwork": ["weighment slip", "ledger record"], "review_required": false, "basis": ["M", "P"], "key_requirements": ["Clean, non-hazardous scrap trades as ordinary scrap; no dedicated authorization found", "Contamination (batteries, oils, electronics, mercury items) changes the rule: re-route as hazardous or e-waste", "Keep a weighment slip and a transfer record for the handoff"]},
-  {"material": "mixed_metal", "hazardous": false, "regulated": false, "rule_name": "No specific rule, Hazardous and Other Wastes Rules, 2016 if contaminated", "section_ref": null, "handler_requirement": "scrap dealer after sorting", "paperwork": ["weighment slip", "ledger record"], "review_required": true, "basis": ["M", "P"], "key_requirements": ["Clean, non-hazardous scrap trades as ordinary scrap; no dedicated authorization found", "Contamination (batteries, oils, electronics, mercury items) changes the rule: re-route as hazardous or e-waste", "Keep a weighment slip and a transfer record for the handoff", "May hide batteries, electronics or mercury items: human review before handoff"]},
-  {"material": "paper", "hazardous": false, "regulated": false, "rule_name": "Solid Waste Management Rules, 2016 (dry waste)", "section_ref": null, "handler_requirement": "authorized waste picker or paper recycler", "paperwork": ["weighment slip", "ledger record"], "review_required": false, "basis": ["M"], "key_requirements": ["Segregate dry waste at source (Solid Waste Management Rules, 2016)", "No authorization needed to recycle paper", "Keep a weighment slip and a transfer record"]},
-  {"material": "cardboard", "hazardous": false, "regulated": false, "rule_name": "Solid Waste Management Rules, 2016 (dry waste)", "section_ref": null, "handler_requirement": "authorized waste picker or paper recycler", "paperwork": ["weighment slip", "ledger record"], "review_required": false, "basis": ["M"], "key_requirements": ["Segregate dry waste at source (Solid Waste Management Rules, 2016)", "No authorization needed to recycle cardboard", "Keep a weighment slip and a transfer record"]},
-  {"material": "e_waste_computer", "hazardous": false, "regulated": true, "rule_name": "E-Waste (Management) Rules, 2022", "section_ref": "Principal rules G.S.R. 801(E), 2 Nov 2022", "handler_requirement": "registered refurbisher, dismantler or recycler", "paperwork": ["transfer record", "ledger record"], "review_required": false, "basis": ["V", "M"], "key_requirements": ["Hand over only to registered dismantlers, recyclers or refurbishers (CPCB portal)", "Must not be landfilled, burned or sold to unregistered dealers", "Working equipment goes to a registered refurbisher first (LoopBack policy)", "Producers meet EPR targets through certificates from registered recyclers"]},
-  {"material": "e_waste_storage_drive", "hazardous": false, "regulated": true, "rule_name": "E-Waste (Management) Rules, 2022, data wipe policy", "section_ref": "Principal rules G.S.R. 801(E), 2 Nov 2022", "handler_requirement": "registered refurbisher or recycler after wipe or destruction", "paperwork": ["transfer record", "data wipe certificate", "ledger record"], "review_required": false, "basis": ["V", "M", "P"], "key_requirements": ["Hand over only to registered dismantlers, recyclers or refurbishers (CPCB portal)", "Data wipe or destruction record required before any move (LoopBack policy, not stated as law)", "Must not be landfilled, burned or sold to unregistered dealers"]},
-  {"material": "e_waste_other", "hazardous": false, "regulated": true, "rule_name": "E-Waste (Management) Rules, 2022", "section_ref": "Principal rules G.S.R. 801(E), 2 Nov 2022", "handler_requirement": "registered refurbisher, dismantler or recycler", "paperwork": ["transfer record", "ledger record"], "review_required": false, "basis": ["V", "M"], "key_requirements": ["Hand over only to registered dismantlers, recyclers or refurbishers (CPCB portal)", "Must not be landfilled, burned or sold to unregistered dealers", "Producers meet EPR targets through certificates from registered recyclers"]},
-  {"material": "battery_lead_acid", "hazardous": true, "regulated": true, "rule_name": "Battery Waste Management Rules, 2022", "section_ref": null, "handler_requirement": "authorized battery recycler or producer take-back", "paperwork": ["transfer record", "ledger record"], "review_required": true, "basis": ["M"], "key_requirements": ["Handle as hazardous waste: authorized handlers only", "Battery Waste Management Rules, 2022 apply (producer EPR)", "Human review before handoff"]},
-  {"material": "battery_lithium", "hazardous": true, "regulated": true, "rule_name": "Battery Waste Management Rules, 2022", "section_ref": null, "handler_requirement": "authorized battery recycler", "paperwork": ["transfer record", "fire risk flag", "ledger record"], "review_required": true, "basis": ["M"], "key_requirements": ["Handle as hazardous waste: authorized handlers only", "Battery Waste Management Rules, 2022 apply (producer EPR)", "Fire risk: no mixing with other waste; human review before handoff"]},
-  {"material": "used_oil", "hazardous": true, "regulated": true, "rule_name": "Hazardous and Other Wastes (Management and Transboundary Movement) Rules, 2016", "section_ref": "Principal rules G.S.R. 395(E), 4 Apr 2016", "handler_requirement": "authorized used oil recycler or re-refiner", "paperwork": ["generator authorization", "manifest", "ledger record"], "review_required": true, "basis": ["V", "M"], "key_requirements": ["Hazardous waste: only an authorized handler may receive it", "Authorization and manifest required for movement", "EPR for used oil added by the Eighth Amendment (18 Sep 2023)", "Human review before handoff"]},
-  {"material": "other", "hazardous": null, "regulated": null, "rule_name": "Unclassified", "section_ref": null, "handler_requirement": "human review", "paperwork": [], "review_required": true, "basis": ["P"], "key_requirements": ["Material not classified: no rule can be assumed", "Human review required before any handoff"]}
+  {
+    "material": "aluminium_scrap",
+    "hazardous": false,
+    "regulated": true,
+    "rule_name": "Solid Waste Management Rules, 2026; non-ferrous EPR may apply",
+    "section_ref": "SWM Rules, 2026 rr. 1(1)-(2), 3(s), 5(1)(b), 5(2); HOTWM Rules, 2016 as amended 2025, Ch. VIII (conditional)",
+    "handler_requirement": "authorized waste picker or collector per local-body directions; registered recycler when applicable",
+    "paperwork": [
+      "segregation record (LoopBack policy)",
+      "local-body handoff details as applicable"
+    ],
+    "review_required": true,
+    "basis": [
+      "V",
+      "M",
+      "P"
+    ],
+    "key_requirements": [
+      "Segregate as dry waste and hand over to authorized waste pickers or collectors as directed by the local body (SWM Rules, 2026).",
+      "The 2025 HOTWM amendment adds conditional EPR rules for scheduled non-ferrous products and actors; this material label does not establish that the product or generator is in scope.",
+      "Human review is required until product and generator scope are known."
+    ]
+  },
+  {
+    "material": "steel_scrap",
+    "hazardous": false,
+    "regulated": true,
+    "rule_name": "Solid Waste Management Rules, 2026 (dry waste)",
+    "section_ref": "SWM Rules, 2026 rr. 1(1)-(2), 3(s), 5(1)(b), 5(2)",
+    "handler_requirement": "authorized waste picker or collector per local-body directions; direct recycler handoff where permitted",
+    "paperwork": [
+      "segregation record (LoopBack policy)",
+      "local-body handoff details as applicable"
+    ],
+    "review_required": false,
+    "basis": [
+      "V",
+      "M",
+      "P"
+    ],
+    "key_requirements": [
+      "Segregate as dry waste and hand over to authorized waste pickers or collectors as directed by the local body.",
+      "For institutions above the rule 5(2) threshold, recyclable material must be handed to authorized waste pickers or recyclers after the transition period.",
+      "Follow local-body directions for collection and handoff."
+    ]
+  },
+  {
+    "material": "copper_scrap",
+    "hazardous": false,
+    "regulated": true,
+    "rule_name": "Solid Waste Management Rules, 2026; non-ferrous EPR may apply",
+    "section_ref": "SWM Rules, 2026 rr. 1(1)-(2), 3(s), 5(1)(b), 5(2); HOTWM Rules, 2016 as amended 2025, Ch. VIII (conditional)",
+    "handler_requirement": "authorized waste picker or collector per local-body directions; registered recycler when applicable",
+    "paperwork": [
+      "segregation record (LoopBack policy)",
+      "local-body handoff details as applicable"
+    ],
+    "review_required": true,
+    "basis": [
+      "V",
+      "M",
+      "P"
+    ],
+    "key_requirements": [
+      "Segregate as dry waste and hand over to authorized waste pickers or collectors as directed by the local body (SWM Rules, 2026).",
+      "The 2025 HOTWM amendment adds conditional EPR rules for scheduled non-ferrous products and actors; this material label does not establish that the product or generator is in scope.",
+      "Human review is required until product and generator scope are known."
+    ]
+  },
+  {
+    "material": "mixed_metal",
+    "hazardous": false,
+    "regulated": true,
+    "rule_name": "Solid Waste Management Rules, 2026; hazardous rules if contaminated",
+    "section_ref": "SWM Rules, 2026 r. 5(1)(b); HOTWM Rules, 2016 as amended 2025, Ch. VIII (conditional non-ferrous EPR)",
+    "handler_requirement": "authorized waste picker or collector after sorting; human review if contamination or EPR scope is unclear",
+    "paperwork": [
+      "segregation record (LoopBack policy)",
+      "local-body handoff details as applicable"
+    ],
+    "review_required": true,
+    "basis": [
+      "V",
+      "M",
+      "P"
+    ],
+    "key_requirements": [
+      "Segregate as dry waste and follow local-body handoff directions.",
+      "Mixed scrap may contain batteries, electronics, oils, or other regulated material; human review is required before handoff.",
+      "The 2025 HOTWM amendment adds conditional EPR rules for scheduled non-ferrous products and actors; this label does not establish whether a stream is in scope."
+    ]
+  },
+  {
+    "material": "paper",
+    "hazardous": false,
+    "regulated": true,
+    "rule_name": "Solid Waste Management Rules, 2026 (dry waste)",
+    "section_ref": "SWM Rules, 2026 rr. 1(1)-(2), 3(s), 5(1)(b), 5(2)",
+    "handler_requirement": "authorized waste picker or collector per local-body directions; direct recycler handoff where permitted",
+    "paperwork": [
+      "segregation record (LoopBack policy)",
+      "local-body handoff details as applicable"
+    ],
+    "review_required": false,
+    "basis": [
+      "V",
+      "M",
+      "P"
+    ],
+    "key_requirements": [
+      "Segregate paper as dry waste and hand it to authorized waste pickers or collectors as directed by the local body.",
+      "For institutions above the rule 5(2) threshold, recyclable material must be handed to authorized waste pickers or recyclers after the transition period.",
+      "Follow local-body directions for collection and handoff."
+    ]
+  },
+  {
+    "material": "cardboard",
+    "hazardous": false,
+    "regulated": true,
+    "rule_name": "Solid Waste Management Rules, 2026 (dry waste)",
+    "section_ref": "SWM Rules, 2026 rr. 1(1)-(2), 3(s), 5(1)(b), 5(2)",
+    "handler_requirement": "authorized waste picker or collector per local-body directions; direct recycler handoff where permitted",
+    "paperwork": [
+      "segregation record (LoopBack policy)",
+      "local-body handoff details as applicable"
+    ],
+    "review_required": false,
+    "basis": [
+      "V",
+      "M",
+      "P"
+    ],
+    "key_requirements": [
+      "Segregate cardboard as dry waste and hand it to authorized waste pickers or collectors as directed by the local body.",
+      "For institutions above the rule 5(2) threshold, recyclable material must be handed to authorized waste pickers or recyclers after the transition period.",
+      "Follow local-body directions for collection and handoff."
+    ]
+  },
+  {
+    "material": "e_waste_computer",
+    "hazardous": false,
+    "regulated": true,
+    "rule_name": "E-Waste (Management) Rules, 2022",
+    "section_ref": "Principal rules G.S.R. 801(E), 2 Nov 2022",
+    "handler_requirement": "registered refurbisher, dismantler or recycler",
+    "paperwork": [
+      "transfer record",
+      "ledger record"
+    ],
+    "review_required": false,
+    "basis": [
+      "V",
+      "M"
+    ],
+    "key_requirements": [
+      "Hand over only to registered dismantlers, recyclers or refurbishers (CPCB portal)",
+      "Must not be landfilled, burned or sold to unregistered dealers",
+      "Working equipment goes to a registered refurbisher first (LoopBack policy)",
+      "Producers meet EPR targets through certificates from registered recyclers"
+    ]
+  },
+  {
+    "material": "e_waste_storage_drive",
+    "hazardous": false,
+    "regulated": true,
+    "rule_name": "E-Waste (Management) Rules, 2022, data wipe policy",
+    "section_ref": "Principal rules G.S.R. 801(E), 2 Nov 2022",
+    "handler_requirement": "registered refurbisher or recycler after wipe or destruction",
+    "paperwork": [
+      "transfer record",
+      "data wipe certificate",
+      "ledger record"
+    ],
+    "review_required": false,
+    "basis": [
+      "V",
+      "M",
+      "P"
+    ],
+    "key_requirements": [
+      "Hand over only to registered dismantlers, recyclers or refurbishers (CPCB portal)",
+      "Data wipe or destruction record required before any move (LoopBack policy, not stated as law)",
+      "Must not be landfilled, burned or sold to unregistered dealers"
+    ]
+  },
+  {
+    "material": "e_waste_other",
+    "hazardous": false,
+    "regulated": true,
+    "rule_name": "E-Waste (Management) Rules, 2022",
+    "section_ref": "Principal rules G.S.R. 801(E), 2 Nov 2022",
+    "handler_requirement": "registered refurbisher, dismantler or recycler",
+    "paperwork": [
+      "transfer record",
+      "ledger record"
+    ],
+    "review_required": false,
+    "basis": [
+      "V",
+      "M"
+    ],
+    "key_requirements": [
+      "Hand over only to registered dismantlers, recyclers or refurbishers (CPCB portal)",
+      "Must not be landfilled, burned or sold to unregistered dealers",
+      "Producers meet EPR targets through certificates from registered recyclers"
+    ]
+  },
+  {
+    "material": "battery_lead_acid",
+    "hazardous": true,
+    "regulated": true,
+    "rule_name": "Battery Waste Management Rules, 2022",
+    "section_ref": null,
+    "handler_requirement": "authorized battery recycler or producer take-back",
+    "paperwork": [
+      "transfer record",
+      "ledger record"
+    ],
+    "review_required": true,
+    "basis": [
+      "M"
+    ],
+    "key_requirements": [
+      "Handle as hazardous waste: authorized handlers only",
+      "Battery Waste Management Rules, 2022 apply (producer EPR)",
+      "Human review before handoff"
+    ]
+  },
+  {
+    "material": "battery_lithium",
+    "hazardous": true,
+    "regulated": true,
+    "rule_name": "Battery Waste Management Rules, 2022",
+    "section_ref": null,
+    "handler_requirement": "authorized battery recycler",
+    "paperwork": [
+      "transfer record",
+      "fire risk flag",
+      "ledger record"
+    ],
+    "review_required": true,
+    "basis": [
+      "M"
+    ],
+    "key_requirements": [
+      "Handle as hazardous waste: authorized handlers only",
+      "Battery Waste Management Rules, 2022 apply (producer EPR)",
+      "Fire risk: no mixing with other waste; human review before handoff"
+    ]
+  },
+  {
+    "material": "used_oil",
+    "hazardous": true,
+    "regulated": true,
+    "rule_name": "Hazardous and Other Wastes (Management and Transboundary Movement) Rules, 2016",
+    "section_ref": "Principal rules G.S.R. 395(E), 4 Apr 2016",
+    "handler_requirement": "authorized used oil recycler or re-refiner",
+    "paperwork": [
+      "generator authorization",
+      "manifest",
+      "ledger record"
+    ],
+    "review_required": true,
+    "basis": [
+      "V",
+      "M"
+    ],
+    "key_requirements": [
+      "Hazardous waste: only an authorized handler may receive it",
+      "Authorization and manifest required for movement",
+      "EPR for used oil added by the Eighth Amendment (18 Sep 2023)",
+      "Human review before handoff"
+    ]
+  },
+  {
+    "material": "other",
+    "hazardous": null,
+    "regulated": null,
+    "rule_name": "Unclassified",
+    "section_ref": null,
+    "handler_requirement": "human review",
+    "paperwork": [],
+    "review_required": true,
+    "basis": [
+      "P"
+    ],
+    "key_requirements": [
+      "Material not classified: no rule can be assumed",
+      "Human review required before any handoff"
+    ]
+  }
 ]

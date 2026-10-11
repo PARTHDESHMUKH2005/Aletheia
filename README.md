@@ -12,7 +12,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![Gemini](https://img.shields.io/badge/Gemini-vision-4285F4?logo=googlegemini&logoColor=white)
-![AWS](https://img.shields.io/badge/AWS-Lambda%20ready-FF9900?logo=amazonaws&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-SAM%20template-FF9900?logo=amazonaws&logoColor=white)
 
 </div>
 
@@ -22,11 +22,11 @@
 
 ## 🔥 The problem
 
-India generates tens of millions of tonnes of waste a year, and a large share of the recyclable part never reaches a recycler.
+Waste generators often lack a clear material inventory, current handler information and a traceable record of where each stream went.
 
-- **Nobody knows what they hold.** A workshop, lab or data center sees "junk". Is it steel, aluminium, e-waste or hazardous oil? The answer decides who can legally take it.
+- **Nobody knows what they hold.** A workshop, lab or data center sees "junk". Is it steel, aluminium, e-waste or used oil? The material and contamination affect which handling rules and destinations may apply.
 - **Nobody knows who to call.** Scrap goes to whichever dealer is nearest, at whatever price they offer.
-- **Nobody can prove where it went.** Rules such as the E-Waste, Hazardous Waste and Battery Rules require paperwork. Records are scattered, editable and rarely trusted.
+- **Nobody can prove where it went.** Applicable waste rules can impose registration, handling and record-keeping duties. Exact obligations depend on the material and generator; see [`RULES.md`](RULES.md). Records are often scattered and difficult to verify.
 
 ## 😣 The pain
 
@@ -43,7 +43,7 @@ Money and carbon are also treated as separate questions. The highest bidder may 
 **LoopBack** is an agent that handles the whole journey from a photo to a proof of handoff:
 
 1. 📸 **Characterize.** Gemini vision identifies the material, purity, hazard flag and a confidence score from a photo.
-2. 📜 **Apply the rules.** It looks up the Indian waste rule that governs the material and who may legally handle it.
+2. 📜 **Apply the rules.** It looks up the app's rule record for the material and the handler requirements to check.
 3. 🎚️ **Route with a slider.** One control runs from *more money* to *less carbon*. Buyers are ranked by net ₹/kg and net CO₂e/kg, with transport cost and emissions included.
 4. 🧾 **Show the receipt.** It reports money earned and CO₂e avoided against the throw-it-away baseline.
 5. 🔗 **Record it.** Every handoff goes into a SHA-256 hash-chained ledger that anyone can re-verify. The result is a shareable **Waste Passport**.
@@ -110,7 +110,7 @@ npm ci
 npm run dev
 ```
 
-Open the Vite URL and sign in using the `token` value from `API_TOKENS_JSON` in `backend/.env`. Upload a photo with a demo pincode such as `147001` (Patiala) or `110001` (Delhi). The same-origin demo at `http://localhost:8000/demo/` also accepts this credential. Sliding previews a route; **Save routing choice** persists it for pickup, passports and dashboards.
+Open the Vite URL and sign in using the `token` value from `API_TOKENS_JSON` in `backend/.env`. Upload one to four photos with a demo pincode such as `147001` (Patiala) or `110001` (Delhi). The same-origin demo at `http://localhost:8000/demo/` also accepts this credential. Sliding previews a route; **Save routing choice** persists it for pickup, passports and dashboards.
 
 `API_TOKENS_JSON` is a JSON array of `{token, subject, role, org_ids}` entries. `operator` can submit and record handoffs; `reviewer` can also review and record wipe certificates; `admin` can also use the local tamper demo. Each role is restricted to its listed organizations. The generator supports `--role`, `--subject` and repeated `--org` options. A missing or malformed credential configuration denies private access. Only processor/scoring data and ledger verification are public. Browser credentials stay in the current tab's session; never embed them in a frontend build.
 
@@ -139,7 +139,7 @@ Photos are uploaded once per key: a second local PUT returns 409, and cloud PUTs
 | Doc | What's inside |
 |---|---|
 | [`ARCHITECTURE.md`](ARCHITECTURE.md) | Plain-words tour of the code and the life of one request |
-| [`BUILD.md`](BUILD.md) | Full spec and build runbook |
+| [`BUILD.md`](BUILD.md) | Current implementation, local development and pre-AWS checklist |
 | [`RULES.md`](RULES.md) | Indian waste-rules reference behind the compliance logic |
 | [`docs/DEMO_DATA.md`](docs/DEMO_DATA.md) | Demo data, scoring formula, sourced versus assumed numbers |
 

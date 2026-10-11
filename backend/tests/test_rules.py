@@ -28,6 +28,22 @@ def test_every_rule_with_m_in_basis_is_unverified():
             assert result["verified"] is False, row["material"]
 
 
+def test_paper_and_cardboard_use_current_solid_waste_rules():
+    for material in ("paper", "cardboard"):
+        result = lookup_rules(material)
+        assert "Solid Waste Management Rules, 2026" in result["rule_name"]
+        assert "5(1)(b)" in result["section_ref"]
+        assert result["regulated"] is True
+
+
+def test_aluminium_and_copper_require_review_for_conditional_epr_scope():
+    for material in ("aluminium_scrap", "copper_scrap"):
+        result = lookup_rules(material)
+        assert "HOTWM Rules, 2016 as amended 2025" in result["section_ref"]
+        assert result["review_required"] is True
+        assert result["verified"] is False
+
+
 def test_rules_json_only_has_materials_from_the_build_md_enum():
     allowed = {
         "aluminium_scrap", "steel_scrap", "copper_scrap", "mixed_metal",

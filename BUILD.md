@@ -6,7 +6,7 @@ This guide describes the implementation in this repository. For the project over
 
 LoopBack accepts an organization's waste photos, note, approximate quantity, and pickup pincode. The backend characterizes items, looks up the applicable rule record, finds eligible processors, calculates a route, and records stream events in a verifiable hash-chained ledger. Low-confidence or unsupported cases can be sent for human review. It also creates a PDF report and a Waste Passport.
 
-The product is a demo. Processor identities, prices, recovery rates, and some emissions factors are illustrative. Rule records still need official-source verification. The app does not certify compliance or confirm that a physical handoff occurred. See [RULES.md](RULES.md) and [docs/DEMO_DATA.md](docs/DEMO_DATA.md).
+The product is a demo. Processor identities, prices, recovery rates, and some emissions factors are illustrative. Some rule records still need official-source verification; see the basis and source references in `RULES.md`. The app does not certify compliance or confirm that a physical handoff occurred. See [RULES.md](RULES.md) and [docs/DEMO_DATA.md](docs/DEMO_DATA.md).
 
 ## Current architecture
 
@@ -59,7 +59,7 @@ npm run build
 The vision evaluation makes live model calls and requires a working provider configuration:
 
 ```powershell
-Set-Location ..
+# Run from the repository root.
 .\.venv\Scripts\python eval/run_eval.py
 ```
 
